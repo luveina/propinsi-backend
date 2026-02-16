@@ -207,6 +207,12 @@ PBI-17 (Upload Bukti): Endpoint POST /api/reservasi/upload-bukti dengan logic re
 
 PBI-18 & PBI-19 (Verifikasi): Endpoint PATCH /api/reservasi/verify/{id} bagi Koordinator Pendaftaran untuk mengubah status menjadi 'Paid' atau 'Invalid' , serta GET /api/profile/my-tickets bagi peserta untuk melihat E-Ticket.
 
+5. Monitoring Statistik Lomba (EPIC 05)
+
+PBI-25 & PBI-26 (Operasional Lapangan): Fitur daftar partisipan per kelas GET /api/events/{eventId}/participants dan update status kehadiran via PATCH /api/participants/{participantId}/check-in.
+
+PBI-27 & PBI-28 (Analytics): Dashboard ringkasan GET /api/dashboard/summary untuk menghitung Revenue, Occupancy, dan Attendance Rate , serta GET /api/dashboard/analytics untuk tren penjualan harian.
+
 ## Khay
 Berikut adalah daftar fitur utama yang dikerjakan berdasarkan Product Backlog Item (PBI) SILOBUR-NG:
 
