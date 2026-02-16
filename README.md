@@ -2,6 +2,19 @@
 
 Backend application untuk project Propinsi menggunakan Spring Boot.
 
+## Backlog & Fitur (Azzahra)
+
+Berikut adalah daftar **Product Backlog Item (PBI)** yang sedang dan akan saya kerjakan:
+
+- [ ] **[R] Katalog Lomba** Fitur untuk menampilkan daftar lomba yang tersedia bagi peserta.
+- [ ] **[R] Detail Lomba** Halaman untuk melihat informasi lengkap mengenai suatu lomba.
+- [ ] **[R/U] Verifikasi Pembayaran Peserta** Fitur admin untuk melihat bukti bayar dan melakukan validasi (terima/tolak).
+- [ ] **[U] Detail Lomba Juri** Fitur khusus Juri untuk memperbarui atau melengkapi data pada detail lomba.
+- [ ] **[R] Pengumuman Hasil Akhir Lomba** Halaman untuk menampilkan hasil akhir atau pemenang lomba.
+- [ ] **[R] Daftar Partisipan Lomba** Fitur untuk melihat daftar peserta yang sudah terdaftar di lomba tertentu.
+
+*(Keterangan: [R] = Read/View, [U] = Update/Edit)*
+
 ## Prerequisites
 
 Sebelum menjalankan aplikasi ini, pastikan Anda telah menginstall:
@@ -185,13 +198,3 @@ Edit `pom.xml` dan tambahkan dependency yang dibutuhkan, kemudian jalankan:
 - **Spring DevTools** (untuk development)
 - **Lombok** (untuk mengurangi boilerplate code)
 - **Maven** (build tool)
-
-## Git Workflow (Standard, bisa disesuaikan dengan kebutuhan)
-
-```
-main (production)
-├── staging (pre-production)
-│   ├── feature/nama-fitur-1
-│   ├── feature/nama-fitur-2
-│   └── fix/nama-bug
-```
