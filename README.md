@@ -2,6 +2,19 @@
 
 Backend application untuk project Propinsi menggunakan Spring Boot.
 
+## Backlog & Fitur (Azzahra)
+
+Berikut adalah daftar **Product Backlog Item (PBI)** yang sedang dan akan saya kerjakan:
+
+- [ ] **[R] Katalog Lomba** Fitur untuk menampilkan daftar lomba yang tersedia bagi peserta.
+- [ ] **[R] Detail Lomba** Halaman untuk melihat informasi lengkap mengenai suatu lomba.
+- [ ] **[R/U] Verifikasi Pembayaran Peserta** Fitur admin untuk melihat bukti bayar dan melakukan validasi (terima/tolak).
+- [ ] **[U] Detail Lomba Juri** Fitur khusus Juri untuk memperbarui atau melengkapi data pada detail lomba.
+- [ ] **[R] Pengumuman Hasil Akhir Lomba** Halaman untuk menampilkan hasil akhir atau pemenang lomba.
+- [ ] **[R] Daftar Partisipan Lomba** Fitur untuk melihat daftar peserta yang sudah terdaftar di lomba tertentu.
+
+*(Keterangan: [R] = Read/View, [U] = Update/Edit)*
+
 ## Prerequisites
 
 Sebelum menjalankan aplikasi ini, pastikan Anda telah menginstall:
@@ -212,3 +225,23 @@ Berikut adalah detail implementasi FE berdasarkan Product Backlog Item (PBI) SIL
 - **PBI-4 dan 5**: Endpoint GET /api/profile untuk melihat data diri , PUT /api/profile/password untuk update password , dan PUT /api/accounts/{id} untuk update data akun oleh Admin.
 - **PBI-17**: Endpoint POST /api/reservasi/upload-bukti dengan logic re-check status seat di database untuk menghindari race condition (Conflict 409).
 - **PBI-22**: Klasemen Semi-Final & Waiting Room – Rekapitulasi GET /api/scoring/semi-final dan penentuan skor akhir (Poin Koncer A/B) melalui POST /api/scoring/koncer.
+
+5. Monitoring Statistik Lomba (EPIC 05)
+
+PBI-25 & PBI-26 (Operasional Lapangan): Fitur daftar partisipan per kelas GET /api/events/{eventId}/participants dan update status kehadiran via PATCH /api/participants/{participantId}/check-in.
+
+PBI-27 & PBI-28 (Analytics): Dashboard ringkasan GET /api/dashboard/summary untuk menghitung Revenue, Occupancy, dan Attendance Rate , serta GET /api/dashboard/analytics untuk tren penjualan harian.
+
+## Khay
+Berikut adalah daftar fitur utama yang dikerjakan berdasarkan Product Backlog Item (PBI) SILOBUR-NG:
+
+PBI-1: Registrasi Peserta
+Implementasi endpoint POST /api/auth/register untuk pendaftaran mandiri pengguna (Peserta).
+PBI-2: Login
+Implementasi endpoint POST /api/auth/login dengan validasi kredensial dan status akun aktif.
+PBI-3: Logout Pengguna
+Implementasi endpoint POST /api/auth/logout untuk proses invalidasi token sesi (security).
+PBI-17: [C/U] Upload Bukti Pembayaran & Locking Seat
+Implementasi logic POST /api/reservasi/upload-bukti termasuk mekanisme penguncian nomor gantangan di database untuk menghindari race condition.
+PBI-21: [R/U] Interactive Gantangan & Selection
+Implementasi fitur interaktif bagi Juri untuk melihat teknis gantangan dan melakukan input seleksi burung terbaik melalui POST /api/scoring/vote.
