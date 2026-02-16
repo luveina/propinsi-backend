@@ -198,3 +198,44 @@ Edit `pom.xml` dan tambahkan dependency yang dibutuhkan, kemudian jalankan:
 - **Spring DevTools** (untuk development)
 - **Lombok** (untuk mengurangi boilerplate code)
 - **Maven** (build tool)
+
+## Git Workflow (Standard, bisa disesuaikan dengan kebutuhan)
+
+```
+main (production)
+├── staging (pre-production)
+│   ├── feature/nama-fitur-1
+│   ├── feature/nama-fitur-2
+│   └── fix/nama-bug
+```
+
+Fitur & Backlog (PBI Mapping)
+Berikut adalah detail fitur backend yang diimplementasikan berdasarkan Product Backlog Item (PBI) SILOBUR-NG:
+
+3. Monitoring Pendaftaran & Pembayaran (EPIC 03)
+
+PBI-16 (Reservasi): Endpoint GET /api/reservasi/denah/{lomba_id} untuk mengecek status ketersediaan nomor gantangan (Available/Booked).
+
+PBI-17 (Upload Bukti): Endpoint POST /api/reservasi/upload-bukti dengan logic re-check status seat di database untuk menghindari race condition (Conflict 409).
+
+PBI-18 & PBI-19 (Verifikasi): Endpoint PATCH /api/reservasi/verify/{id} bagi Koordinator Pendaftaran untuk mengubah status menjadi 'Paid' atau 'Invalid' , serta GET /api/profile/my-tickets bagi peserta untuk melihat E-Ticket.
+
+5. Monitoring Statistik Lomba (EPIC 05)
+
+PBI-25 & PBI-26 (Operasional Lapangan): Fitur daftar partisipan per kelas GET /api/events/{eventId}/participants dan update status kehadiran via PATCH /api/participants/{participantId}/check-in.
+
+PBI-27 & PBI-28 (Analytics): Dashboard ringkasan GET /api/dashboard/summary untuk menghitung Revenue, Occupancy, dan Attendance Rate , serta GET /api/dashboard/analytics untuk tren penjualan harian.
+
+## Khay
+Berikut adalah daftar fitur utama yang dikerjakan berdasarkan Product Backlog Item (PBI) SILOBUR-NG:
+
+PBI-1: Registrasi Peserta
+Implementasi endpoint POST /api/auth/register untuk pendaftaran mandiri pengguna (Peserta).
+PBI-2: Login
+Implementasi endpoint POST /api/auth/login dengan validasi kredensial dan status akun aktif.
+PBI-3: Logout Pengguna
+Implementasi endpoint POST /api/auth/logout untuk proses invalidasi token sesi (security).
+PBI-17: [C/U] Upload Bukti Pembayaran & Locking Seat
+Implementasi logic POST /api/reservasi/upload-bukti termasuk mekanisme penguncian nomor gantangan di database untuk menghindari race condition.
+PBI-21: [R/U] Interactive Gantangan & Selection
+Implementasi fitur interaktif bagi Juri untuk melihat teknis gantangan dan melakukan input seleksi burung terbaik melalui POST /api/scoring/vote.
