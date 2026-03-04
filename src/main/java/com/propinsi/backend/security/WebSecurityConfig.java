@@ -31,6 +31,9 @@ public class WebSecurityConfig {
                 // Izinkan akses ke Auth (Login/Register)
                 .requestMatchers("/api/auth/**").permitAll()
                 
+                // akun hanya untuk admin
+                .requestMatchers("/api/accounts/**").hasRole("ADMIN")
+                
                 // // PENTING: Izinkan akses ke halaman error supaya kelihatan pesan error aslinya
                 // .requestMatchers("/error").permitAll()
                 

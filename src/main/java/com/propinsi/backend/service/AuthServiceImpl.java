@@ -53,6 +53,7 @@ public class AuthServiceImpl implements AuthService{
                 jwt,
                 user.getId(),
                 user.getUsername(),
+                user.getFullName(),
                 user.getRole().name(),
                 user.isFirstLogin() 
         );
