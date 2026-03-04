@@ -19,14 +19,14 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public void resetPassword(Long id) {
-        // Cari user berdasarkan ID, jika tidak ada lempar 404 (Sesuai AC BE point 4)
+        // Cari user berdasarkan ID, jika tidak ada lempar 404 (AC BE point 4)
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User tidak ditemukan"));
 
-        // Reset password ke default "Silobur123!" dan di-hash (Sesuai AC BE point 2)
+        // Reset password ke default "Silobur123!" dan di-hash (AC BE point 2)
         user.setPassword(passwordEncoder.encode("Silobur123!"));
         
-        // Opsional: Set isFirstLogin ke true agar user wajib ganti password lagi saat login
+        // Set isFirstLogin ke true agar user wajib ganti password lagi saat login
         user.setFirstLogin(true);
 
         userRepository.save(user);

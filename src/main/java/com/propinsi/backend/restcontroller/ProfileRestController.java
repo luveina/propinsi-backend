@@ -36,13 +36,13 @@ public class ProfileRestController {
         return ResponseEntity.ok(BaseResponse.success(profile, "Data profil berhasil diambil"));
     }
 
-    // Tambahkan endpoint PBI-05 di sini
+    // PBI-05
     @PutMapping("/password")
     public ResponseEntity<BaseResponse<Void>> updatePassword(
             @Valid @RequestBody UpdatePasswordRequest request,
             BindingResult bindingResult
     ) {
-        // Validasi format input (@NotBlank, @Size)
+        
         if (bindingResult.hasErrors()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Input tidak valid");
         }
