@@ -1,6 +1,5 @@
 package com.propinsi.backend.mengelola_lomba.controller;
 
-import com.propinsi.backend.mengelola_lomba.model.Lomba;
 import com.propinsi.backend.mengelola_lomba.restdto.request.LombaRequest;
 import com.propinsi.backend.mengelola_lomba.restdto.response.LombaResponse;
 import com.propinsi.backend.mengelola_lomba.service.LombaService;
@@ -18,15 +17,21 @@ import java.util.UUID;
 public class LombaController {
 
     @Autowired
-    private LombaService lombaService;
+    private LombaService lombaService; // Ini memanggil Interface
 
     @PostMapping
     public ResponseEntity<LombaResponse> createLomba(@Valid @RequestBody LombaRequest request) {
-        return new ResponseEntity<>(lombaService.createLomba(request), HttpStatus.CREATED);
+        LombaResponse response = lombaService.createLomba(request);
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<LombaResponse> getLombaById(@PathVariable UUID id) {
         return ResponseEntity.ok(lombaService.getLombaById(id));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<LombaResponse>> getAllLomba() {
+        return ResponseEntity.ok(lombaService.getAllLomba());
     }
 }
