@@ -12,6 +12,7 @@ public interface LombaService {
     LombaResponse createLomba(LombaRequest request);
     LombaResponse getLombaById(UUID id);
     List<LombaResponse> getAllLomba();
+    LombaResponse updateLomba(UUID id, LombaRequest request);
     LombaResponse assignJuriToLomba(UUID lombaId, AssignJuriRequest request);
     LombaResponse removeJuriFromLomba(UUID lombaId, Long juriId);
     List<UserSummaryResponse> getAvailableJuri();

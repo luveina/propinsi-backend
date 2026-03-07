@@ -14,9 +14,13 @@ import com.propinsi.backend.model.Role;
 import com.propinsi.backend.model.User;
 import com.propinsi.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -77,6 +81,47 @@ public class LombaServiceImpl implements LombaService {
         return lombaRepository.findAll().stream()
                 .map(this::mapToLombaResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public LombaResponse updateLomba(UUID id, LombaRequest request) {
+        Lomba lomba = lombaRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lomba tidak ditemukan"));
+
+        // lomba sdh mulai?
+        if (lomba.getStatus() != StatusLomba.BELUM_DIMULAI) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tidak dapat mengubah data lomba yang sedang berlangsung atau selesai");
+        }
+
+        // lomba sudah h-1 atau belum
+        LocalDate today = LocalDate.now();
+        LocalDate dDay = lomba.getWaktuTanggal().toLocalDate();
+        if (!today.isBefore(dDay)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Gagal update karena sudah hari lomba");
+        }
+
+        boolean hasPeserta = lomba.getListGantangan().stream()
+                .anyMatch(g -> g.getPeserta() != null || !g.getIsAvailable());
+        if (hasPeserta) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Gagal update karena sudah ada peserta yang mendaftar di lomba ini");
+        }
+
+        if (request.getJumlahJuri() < lomba.getListJuri().size()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Jumlah juri tidak boleh lebih sedikit dari juri yang sudah di-assign");
+        }
+
+        lomba.setNamaLomba(request.getNamaLomba());
+        lomba.setLokasi(request.getLokasi());
+        lomba.setWaktuTanggal(request.getWaktuTanggal());
+        lomba.setJenisBurung(request.getJenisBurung());
+        lomba.setKelas(request.getKelas());
+        lomba.setHargaTiket(request.getHargaTiket());
+        lomba.setHadiah(request.getHadiah());
+        lomba.setJumlahJuri(request.getJumlahJuri());
+        lomba.setContactPerson(request.getContactPerson());
+
+        Lomba updatedLomba = lombaRepository.save(lomba);
+        return mapToLombaResponse(updatedLomba);
     }
 
     @Override

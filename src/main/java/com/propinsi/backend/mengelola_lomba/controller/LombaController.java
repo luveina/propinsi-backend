@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,6 +22,7 @@ public class LombaController {
     @Autowired
     private LombaService lombaService;
 
+    @PreAuthorize("hasAnyAuthority('KOORDINATOR_LOMBA', 'ADMIN')") 
     @PostMapping
     public ResponseEntity<LombaResponse> createLomba(@Valid @RequestBody LombaRequest request) {
         LombaResponse response = lombaService.createLomba(request);
@@ -37,6 +39,16 @@ public class LombaController {
         return ResponseEntity.ok(lombaService.getAllLomba());
     }
 
+    @PreAuthorize("hasAnyAuthority('KOORDINATOR_LOMBA', 'ADMIN')")
+    @PutMapping("/{id}")
+    public ResponseEntity<LombaResponse> updateLomba(
+            @PathVariable UUID id, 
+            @Valid @RequestBody LombaRequest request) {
+        LombaResponse response = lombaService.updateLomba(id, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PreAuthorize("hasAnyAuthority('KOORDINATOR_LOMBA', 'ADMIN')")
     @PostMapping("/{lombaId}/assign-juri")
     public ResponseEntity<LombaResponse> assignJuri(
             @PathVariable UUID lombaId,
@@ -46,6 +58,7 @@ public class LombaController {
         return ResponseEntity.ok(response);
     }
 
+    @PreAuthorize("hasAnyAuthority('KOORDINATOR_LOMBA', 'ADMIN')")
     @DeleteMapping("/{lombaId}/remove-juri/{juriId}")
     public ResponseEntity<LombaResponse> removeJuri(
             @PathVariable UUID lombaId,
@@ -55,6 +68,7 @@ public class LombaController {
         return ResponseEntity.ok(response);
     }
 
+    @PreAuthorize("hasAnyAuthority('KOORDINATOR_LOMBA', 'ADMIN')")
     @GetMapping("/available-juri")
     public ResponseEntity<List<UserSummaryResponse>> getAvailableJuri() {
         return ResponseEntity.ok(lombaService.getAvailableJuri());
