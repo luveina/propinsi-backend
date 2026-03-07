@@ -18,7 +18,8 @@ public class LombaResponse {
     private JenisBurung jenisBurung;
     private String kelas;
     private Double hargaTiket;
-    private String hadiah;
+    private List<Long> hadiah;
+    private Integer jumlahJuara;
     private Integer jumlahJuri;
     private List<UserSummaryResponse> listJuri;
     private String contactPerson;

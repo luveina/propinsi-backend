@@ -35,11 +35,7 @@ public class WebSecurityConfig {
                 .requestMatchers("/api/accounts/**").hasRole("ADMIN")
                 
                 // Lomba - CRUD hanya untuk ADMIN dan KOORDINATOR_LOMBA
-                .requestMatchers("/api/lomba").hasAnyRole("ADMIN", "KOORDINATOR_LOMBA")
-                .requestMatchers("/api/lomba/*").hasAnyRole("ADMIN", "KOORDINATOR_LOMBA")
-                .requestMatchers("/api/lomba/*/assign-juri").hasAnyRole("ADMIN", "KOORDINATOR_LOMBA")
-                .requestMatchers("/api/lomba/*/remove-juri/*").hasAnyRole("ADMIN", "KOORDINATOR_LOMBA")
-                .requestMatchers("/api/lomba/available-juri").hasAnyRole("ADMIN", "KOORDINATOR_LOMBA")
+                .requestMatchers("/api/lomba/**").authenticated()
                 
                 // Gantangan - hanya PESERTA yang bisa daftar
                 .requestMatchers("/api/gantangan/register").hasRole("PESERTA")

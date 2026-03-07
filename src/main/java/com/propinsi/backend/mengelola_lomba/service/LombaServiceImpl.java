@@ -49,6 +49,7 @@ public class LombaServiceImpl implements LombaService {
         lomba.setKelas(request.getKelas());
         lomba.setHargaTiket(request.getHargaTiket());
         lomba.setHadiah(request.getHadiah());
+        lomba.setJumlahJuara(request.getHadiah() != null ? request.getHadiah().size() : 0);
         lomba.setJumlahJuri(request.getJumlahJuri());
         lomba.setContactPerson(request.getContactPerson());
         lomba.setStatus(StatusLomba.BELUM_DIMULAI);
@@ -117,6 +118,7 @@ public class LombaServiceImpl implements LombaService {
         lomba.setKelas(request.getKelas());
         lomba.setHargaTiket(request.getHargaTiket());
         lomba.setHadiah(request.getHadiah());
+        lomba.setJumlahJuara(request.getHadiah() != null ? request.getHadiah().size() : 0);
         lomba.setJumlahJuri(request.getJumlahJuri());
         lomba.setContactPerson(request.getContactPerson());
 
@@ -193,6 +195,7 @@ public class LombaServiceImpl implements LombaService {
         response.setKelas(lomba.getKelas());
         response.setHargaTiket(lomba.getHargaTiket());
         response.setHadiah(lomba.getHadiah());
+        response.setJumlahJuara(lomba.getJumlahJuara());
         response.setJumlahJuri(lomba.getJumlahJuri());
         response.setContactPerson(lomba.getContactPerson());
         response.setStatus(lomba.getStatus());

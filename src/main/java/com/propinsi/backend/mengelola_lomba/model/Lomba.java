@@ -40,9 +40,13 @@ public class Lomba {
     @Min(0)
     private Double hargaTiket;
 
-    @NotBlank(message = "Hadiah wajib diisi")
-    @Column(columnDefinition = "TEXT")
-    private String hadiah;
+    @ElementCollection
+    @CollectionTable(name = "lomba_hadiah", joinColumns = @JoinColumn(name = "lomba_id"))
+    @Column(name = "nominal")
+    @OrderColumn(name = "peringkat")
+    private List<Long> hadiah = new ArrayList<>();
+
+    private Integer jumlahJuara;
 
     @NotNull(message = "Jumlah Juri wajib diisi")
     @Min(1)

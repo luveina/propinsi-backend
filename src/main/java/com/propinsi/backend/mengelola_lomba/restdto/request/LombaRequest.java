@@ -4,6 +4,7 @@ import com.propinsi.backend.mengelola_lomba.model.JenisBurung;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class LombaRequest {
@@ -27,8 +28,9 @@ public class LombaRequest {
     @Min(0)
     private Double hargaTiket;
 
-    @NotBlank(message = "Hadiah wajib diisi")
-    private String hadiah;
+    @NotNull(message = "Hadiah wajib diisi")
+    @Size(min = 1, message = "Minimal harus ada 1 hadiah")
+    private List<Long> hadiah;
 
     @NotNull(message = "Jumlah Juri wajib diisi")
     @Min(1)
