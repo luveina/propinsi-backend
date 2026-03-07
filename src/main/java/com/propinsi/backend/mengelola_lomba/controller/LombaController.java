@@ -1,12 +1,15 @@
 package com.propinsi.backend.mengelola_lomba.controller;
 
+import com.propinsi.backend.mengelola_lomba.restdto.request.AssignJuriRequest;
 import com.propinsi.backend.mengelola_lomba.restdto.request.LombaRequest;
 import com.propinsi.backend.mengelola_lomba.restdto.response.LombaResponse;
+import com.propinsi.backend.mengelola_lomba.restdto.response.UserSummaryResponse;
 import com.propinsi.backend.mengelola_lomba.service.LombaService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,8 +20,9 @@ import java.util.UUID;
 public class LombaController {
 
     @Autowired
-    private LombaService lombaService; // Ini memanggil Interface
+    private LombaService lombaService;
 
+    @PreAuthorize("hasAnyAuthority('KOORDINATOR_LOMBA', 'ADMIN')") 
     @PostMapping
     public ResponseEntity<LombaResponse> createLomba(@Valid @RequestBody LombaRequest request) {
         LombaResponse response = lombaService.createLomba(request);
@@ -33,5 +37,40 @@ public class LombaController {
     @GetMapping
     public ResponseEntity<List<LombaResponse>> getAllLomba() {
         return ResponseEntity.ok(lombaService.getAllLomba());
+    }
+
+    @PreAuthorize("hasAnyAuthority('KOORDINATOR_LOMBA', 'ADMIN')")
+    @PutMapping("/{id}")
+    public ResponseEntity<LombaResponse> updateLomba(
+            @PathVariable UUID id, 
+            @Valid @RequestBody LombaRequest request) {
+        LombaResponse response = lombaService.updateLomba(id, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PreAuthorize("hasAnyAuthority('KOORDINATOR_LOMBA', 'ADMIN')")
+    @PostMapping("/{lombaId}/assign-juri")
+    public ResponseEntity<LombaResponse> assignJuri(
+            @PathVariable UUID lombaId,
+            @Valid @RequestBody AssignJuriRequest request
+    ) {
+        LombaResponse response = lombaService.assignJuriToLomba(lombaId, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PreAuthorize("hasAnyAuthority('KOORDINATOR_LOMBA', 'ADMIN')")
+    @DeleteMapping("/{lombaId}/remove-juri/{juriId}")
+    public ResponseEntity<LombaResponse> removeJuri(
+            @PathVariable UUID lombaId,
+            @PathVariable Long juriId
+    ) {
+        LombaResponse response = lombaService.removeJuriFromLomba(lombaId, juriId);
+        return ResponseEntity.ok(response);
+    }
+
+    @PreAuthorize("hasAnyAuthority('KOORDINATOR_LOMBA', 'ADMIN')")
+    @GetMapping("/available-juri")
+    public ResponseEntity<List<UserSummaryResponse>> getAvailableJuri() {
+        return ResponseEntity.ok(lombaService.getAvailableJuri());
     }
 }

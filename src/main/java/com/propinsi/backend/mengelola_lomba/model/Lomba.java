@@ -4,9 +4,11 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.propinsi.backend.model.User;
 
 @Entity
 @Getter @Setter
@@ -38,15 +40,25 @@ public class Lomba {
     @Min(0)
     private Double hargaTiket;
 
-    @NotBlank(message = "Hadiah wajib diisi")
-    @Column(columnDefinition = "TEXT")
-    private String hadiah;
+    @ElementCollection
+    @CollectionTable(name = "lomba_hadiah", joinColumns = @JoinColumn(name = "lomba_id"))
+    @Column(name = "nominal")
+    @OrderColumn(name = "peringkat")
+    private List<Long> hadiah = new ArrayList<>();
+
+    private Integer jumlahJuara;
 
     @NotNull(message = "Jumlah Juri wajib diisi")
     @Min(1)
     private Integer jumlahJuri;
 
-    private String juriAssign; // TEMP String selama blm connect user
+    @ManyToMany
+    @JoinTable(
+        name = "lomba_juri",
+        joinColumns = @JoinColumn(name = "lomba_id"),
+        inverseJoinColumns = @JoinColumn(name = "juri_id")
+    )
+    private List<User> listJuri = new ArrayList<>();
 
     @NotBlank(message = "Contact Person wajib diisi")
     private String contactPerson;

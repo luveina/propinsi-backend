@@ -31,8 +31,15 @@ public class WebSecurityConfig {
                 // Izinkan akses ke Auth (Login/Register)
                 .requestMatchers("/api/auth/**").permitAll()
                 
-                // // PENTING: Izinkan akses ke halaman error supaya kelihatan pesan error aslinya
-                // .requestMatchers("/error").permitAll()
+                // akun hanya untuk admin
+                .requestMatchers("/api/accounts/**").hasRole("ADMIN")
+                
+                // Lomba - CRUD hanya untuk ADMIN dan KOORDINATOR_LOMBA
+                .requestMatchers("/api/lomba/**").authenticated()
+                
+                // Gantangan - hanya PESERTA yang bisa daftar
+                .requestMatchers("/api/gantangan/register").hasRole("PESERTA")
+                .requestMatchers("/api/gantangan/*/unregister").hasRole("PESERTA")
                 
                 // Sisanya wajib login
                 .anyRequest().authenticated()

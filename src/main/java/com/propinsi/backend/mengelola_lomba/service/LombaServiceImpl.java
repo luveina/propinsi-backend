@@ -5,13 +5,22 @@ import com.propinsi.backend.mengelola_lomba.model.Lomba;
 import com.propinsi.backend.mengelola_lomba.model.StatusLomba;
 import com.propinsi.backend.mengelola_lomba.repository.GantanganRepository;
 import com.propinsi.backend.mengelola_lomba.repository.LombaRepository;
+import com.propinsi.backend.mengelola_lomba.restdto.request.AssignJuriRequest;
 import com.propinsi.backend.mengelola_lomba.restdto.request.LombaRequest;
 import com.propinsi.backend.mengelola_lomba.restdto.response.GantanganResponse;
 import com.propinsi.backend.mengelola_lomba.restdto.response.LombaResponse;
+import com.propinsi.backend.mengelola_lomba.restdto.response.UserSummaryResponse;
+import com.propinsi.backend.model.Role;
+import com.propinsi.backend.model.User;
+import com.propinsi.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -27,6 +36,9 @@ public class LombaServiceImpl implements LombaService {
     @Autowired
     private GantanganRepository gantanganRepository;
 
+    @Autowired
+    private UserRepository userRepository;
+
     @Override
     public LombaResponse createLomba(LombaRequest request) {
         Lomba lomba = new Lomba();
@@ -37,6 +49,7 @@ public class LombaServiceImpl implements LombaService {
         lomba.setKelas(request.getKelas());
         lomba.setHargaTiket(request.getHargaTiket());
         lomba.setHadiah(request.getHadiah());
+        lomba.setJumlahJuara(request.getHadiah() != null ? request.getHadiah().size() : 0);
         lomba.setJumlahJuri(request.getJumlahJuri());
         lomba.setContactPerson(request.getContactPerson());
         lomba.setStatus(StatusLomba.BELUM_DIMULAI);
@@ -71,6 +84,107 @@ public class LombaServiceImpl implements LombaService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public LombaResponse updateLomba(UUID id, LombaRequest request) {
+        Lomba lomba = lombaRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lomba tidak ditemukan"));
+
+        // lomba sdh mulai?
+        if (lomba.getStatus() != StatusLomba.BELUM_DIMULAI) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tidak dapat mengubah data lomba yang sedang berlangsung atau selesai");
+        }
+
+        // lomba sudah h-1 atau belum
+        LocalDate today = LocalDate.now();
+        LocalDate dDay = lomba.getWaktuTanggal().toLocalDate();
+        if (!today.isBefore(dDay)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Gagal update karena sudah hari lomba");
+        }
+
+        boolean hasPeserta = lomba.getListGantangan().stream()
+                .anyMatch(g -> g.getPeserta() != null || !g.getIsAvailable());
+        if (hasPeserta) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Gagal update karena sudah ada peserta yang mendaftar di lomba ini");
+        }
+
+        if (request.getJumlahJuri() < lomba.getListJuri().size()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Jumlah juri tidak boleh lebih sedikit dari juri yang sudah di-assign");
+        }
+
+        lomba.setNamaLomba(request.getNamaLomba());
+        lomba.setLokasi(request.getLokasi());
+        lomba.setWaktuTanggal(request.getWaktuTanggal());
+        lomba.setJenisBurung(request.getJenisBurung());
+        lomba.setKelas(request.getKelas());
+        lomba.setHargaTiket(request.getHargaTiket());
+        lomba.setHadiah(request.getHadiah());
+        lomba.setJumlahJuara(request.getHadiah() != null ? request.getHadiah().size() : 0);
+        lomba.setJumlahJuri(request.getJumlahJuri());
+        lomba.setContactPerson(request.getContactPerson());
+
+        Lomba updatedLomba = lombaRepository.save(lomba);
+        return mapToLombaResponse(updatedLomba);
+    }
+
+    @Override
+    public LombaResponse assignJuriToLomba(UUID lombaId, AssignJuriRequest request) {
+        Lomba lomba = lombaRepository.findById(lombaId)
+                .orElseThrow(() -> new RuntimeException("Lomba tidak ditemukan"));
+
+        if (request.getJuriIds().size() > lomba.getJumlahJuri()) {
+            throw new RuntimeException("Jumlah juri melebihi kapasitas lomba (max: " + lomba.getJumlahJuri() + ")");
+        }
+
+        List<User> juriList = new ArrayList<>();
+        for (Long juriId : request.getJuriIds()) {
+            User juri = userRepository.findById(juriId)
+                    .orElseThrow(() -> new RuntimeException("User dengan ID " + juriId + " tidak ditemukan"));
+            
+            if (juri.getRole() != Role.JURI) {
+                throw new RuntimeException("User " + juri.getUsername() + " bukan JURI");
+            }
+            
+            if (lomba.getListJuri().contains(juri)) {
+                throw new RuntimeException("Juri " + juri.getFullName() + " sudah di-assign ke lomba ini");
+            }
+            
+            juriList.add(juri);
+        }
+
+        lomba.getListJuri().addAll(juriList);
+        Lomba savedLomba = lombaRepository.save(lomba);
+        
+        return mapToLombaResponse(savedLomba);
+    }
+
+    @Override
+    public LombaResponse removeJuriFromLomba(UUID lombaId, Long juriId) {
+        Lomba lomba = lombaRepository.findById(lombaId)
+                .orElseThrow(() -> new RuntimeException("Lomba tidak ditemukan"));
+        
+        User juri = userRepository.findById(juriId)
+                .orElseThrow(() -> new RuntimeException("Juri tidak ditemukan"));
+        
+        boolean removed = lomba.getListJuri().removeIf(u -> u.getId().equals(juriId));
+        if (!removed) {
+            throw new RuntimeException("Juri tidak terdaftar di lomba ini");
+        }
+        
+        Lomba savedLomba = lombaRepository.save(lomba);
+        return mapToLombaResponse(savedLomba);
+    }
+
+    @Override
+    public List<UserSummaryResponse> getAvailableJuri() {
+        List<User> juriList = userRepository.findAll().stream()
+                .filter(u -> u.getRole() == Role.JURI && !u.isDeleted())
+                .collect(Collectors.toList());
+        
+        return juriList.stream()
+                .map(this::mapToUserSummaryResponse)
+                .collect(Collectors.toList());
+    }
+
     private LombaResponse mapToLombaResponse(Lomba lomba) {
         LombaResponse response = new LombaResponse();
         response.setId(lomba.getId());
@@ -81,20 +195,47 @@ public class LombaServiceImpl implements LombaService {
         response.setKelas(lomba.getKelas());
         response.setHargaTiket(lomba.getHargaTiket());
         response.setHadiah(lomba.getHadiah());
+        response.setJumlahJuara(lomba.getJumlahJuara());
         response.setJumlahJuri(lomba.getJumlahJuri());
         response.setContactPerson(lomba.getContactPerson());
         response.setStatus(lomba.getStatus());
 
+        if (lomba.getListJuri() != null) {
+            List<UserSummaryResponse> juriResponses = lomba.getListJuri().stream()
+                    .map(this::mapToUserSummaryResponse)
+                    .collect(Collectors.toList());
+            response.setListJuri(juriResponses);
+        }
+
         if (lomba.getListGantangan() != null) {
-            List<GantanganResponse> gantanganResponses = lomba.getListGantangan().stream().map(g -> {
-                GantanganResponse res = new GantanganResponse();
-                res.setId(g.getId());
-                res.setNomorGantangan(g.getNomorGantangan());
-                res.setIsAvailable(g.getIsAvailable());
-                return res;
-            }).collect(Collectors.toList());
+            List<GantanganResponse> gantanganResponses = lomba.getListGantangan().stream()
+                    .map(this::mapToGantanganResponse)
+                    .collect(Collectors.toList());
             response.setListGantangan(gantanganResponses);
         }
+        
         return response;
+    }
+
+    private GantanganResponse mapToGantanganResponse(Gantangan g) {
+        GantanganResponse res = new GantanganResponse();
+        res.setId(g.getId());
+        res.setNomorGantangan(g.getNomorGantangan());
+        res.setIsAvailable(g.getIsAvailable());
+        
+        if (g.getPeserta() != null) {
+            res.setPeserta(mapToUserSummaryResponse(g.getPeserta()));
+        }
+        
+        return res;
+    }
+
+    private UserSummaryResponse mapToUserSummaryResponse(User user) {
+        return UserSummaryResponse.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .fullName(user.getFullName())
+                .role(user.getRole().name())
+                .build();
     }
 }
