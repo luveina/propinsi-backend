@@ -4,9 +4,11 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.propinsi.backend.model.User;
 
 @Entity
 @Getter @Setter
@@ -46,7 +48,13 @@ public class Lomba {
     @Min(1)
     private Integer jumlahJuri;
 
-    private String juriAssign; // TEMP String selama blm connect user
+    @ManyToMany
+    @JoinTable(
+        name = "lomba_juri",
+        joinColumns = @JoinColumn(name = "lomba_id"),
+        inverseJoinColumns = @JoinColumn(name = "juri_id")
+    )
+    private List<User> listJuri = new ArrayList<>();
 
     @NotBlank(message = "Contact Person wajib diisi")
     private String contactPerson;

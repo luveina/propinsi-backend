@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Min;
 import lombok.*;
 import java.util.UUID;
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.propinsi.backend.model.User;
 
 @Entity
 @Getter @Setter
@@ -20,6 +21,10 @@ public class Gantangan {
     private Integer nomorGantangan;
 
     private Boolean isAvailable = true;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "peserta_id")
+    private User peserta;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "lomba_id")

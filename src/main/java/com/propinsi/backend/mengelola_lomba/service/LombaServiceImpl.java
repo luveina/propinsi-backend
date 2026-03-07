@@ -5,9 +5,14 @@ import com.propinsi.backend.mengelola_lomba.model.Lomba;
 import com.propinsi.backend.mengelola_lomba.model.StatusLomba;
 import com.propinsi.backend.mengelola_lomba.repository.GantanganRepository;
 import com.propinsi.backend.mengelola_lomba.repository.LombaRepository;
+import com.propinsi.backend.mengelola_lomba.restdto.request.AssignJuriRequest;
 import com.propinsi.backend.mengelola_lomba.restdto.request.LombaRequest;
 import com.propinsi.backend.mengelola_lomba.restdto.response.GantanganResponse;
 import com.propinsi.backend.mengelola_lomba.restdto.response.LombaResponse;
+import com.propinsi.backend.mengelola_lomba.restdto.response.UserSummaryResponse;
+import com.propinsi.backend.model.Role;
+import com.propinsi.backend.model.User;
+import com.propinsi.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +31,9 @@ public class LombaServiceImpl implements LombaService {
 
     @Autowired
     private GantanganRepository gantanganRepository;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Override
     public LombaResponse createLomba(LombaRequest request) {
@@ -71,6 +79,65 @@ public class LombaServiceImpl implements LombaService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public LombaResponse assignJuriToLomba(UUID lombaId, AssignJuriRequest request) {
+        Lomba lomba = lombaRepository.findById(lombaId)
+                .orElseThrow(() -> new RuntimeException("Lomba tidak ditemukan"));
+
+        if (request.getJuriIds().size() > lomba.getJumlahJuri()) {
+            throw new RuntimeException("Jumlah juri melebihi kapasitas lomba (max: " + lomba.getJumlahJuri() + ")");
+        }
+
+        List<User> juriList = new ArrayList<>();
+        for (Long juriId : request.getJuriIds()) {
+            User juri = userRepository.findById(juriId)
+                    .orElseThrow(() -> new RuntimeException("User dengan ID " + juriId + " tidak ditemukan"));
+            
+            if (juri.getRole() != Role.JURI) {
+                throw new RuntimeException("User " + juri.getUsername() + " bukan JURI");
+            }
+            
+            if (lomba.getListJuri().contains(juri)) {
+                throw new RuntimeException("Juri " + juri.getFullName() + " sudah di-assign ke lomba ini");
+            }
+            
+            juriList.add(juri);
+        }
+
+        lomba.getListJuri().addAll(juriList);
+        Lomba savedLomba = lombaRepository.save(lomba);
+        
+        return mapToLombaResponse(savedLomba);
+    }
+
+    @Override
+    public LombaResponse removeJuriFromLomba(UUID lombaId, Long juriId) {
+        Lomba lomba = lombaRepository.findById(lombaId)
+                .orElseThrow(() -> new RuntimeException("Lomba tidak ditemukan"));
+        
+        User juri = userRepository.findById(juriId)
+                .orElseThrow(() -> new RuntimeException("Juri tidak ditemukan"));
+        
+        boolean removed = lomba.getListJuri().removeIf(u -> u.getId().equals(juriId));
+        if (!removed) {
+            throw new RuntimeException("Juri tidak terdaftar di lomba ini");
+        }
+        
+        Lomba savedLomba = lombaRepository.save(lomba);
+        return mapToLombaResponse(savedLomba);
+    }
+
+    @Override
+    public List<UserSummaryResponse> getAvailableJuri() {
+        List<User> juriList = userRepository.findAll().stream()
+                .filter(u -> u.getRole() == Role.JURI && !u.isDeleted())
+                .collect(Collectors.toList());
+        
+        return juriList.stream()
+                .map(this::mapToUserSummaryResponse)
+                .collect(Collectors.toList());
+    }
+
     private LombaResponse mapToLombaResponse(Lomba lomba) {
         LombaResponse response = new LombaResponse();
         response.setId(lomba.getId());
@@ -85,16 +152,42 @@ public class LombaServiceImpl implements LombaService {
         response.setContactPerson(lomba.getContactPerson());
         response.setStatus(lomba.getStatus());
 
+        if (lomba.getListJuri() != null) {
+            List<UserSummaryResponse> juriResponses = lomba.getListJuri().stream()
+                    .map(this::mapToUserSummaryResponse)
+                    .collect(Collectors.toList());
+            response.setListJuri(juriResponses);
+        }
+
         if (lomba.getListGantangan() != null) {
-            List<GantanganResponse> gantanganResponses = lomba.getListGantangan().stream().map(g -> {
-                GantanganResponse res = new GantanganResponse();
-                res.setId(g.getId());
-                res.setNomorGantangan(g.getNomorGantangan());
-                res.setIsAvailable(g.getIsAvailable());
-                return res;
-            }).collect(Collectors.toList());
+            List<GantanganResponse> gantanganResponses = lomba.getListGantangan().stream()
+                    .map(this::mapToGantanganResponse)
+                    .collect(Collectors.toList());
             response.setListGantangan(gantanganResponses);
         }
+        
         return response;
+    }
+
+    private GantanganResponse mapToGantanganResponse(Gantangan g) {
+        GantanganResponse res = new GantanganResponse();
+        res.setId(g.getId());
+        res.setNomorGantangan(g.getNomorGantangan());
+        res.setIsAvailable(g.getIsAvailable());
+        
+        if (g.getPeserta() != null) {
+            res.setPeserta(mapToUserSummaryResponse(g.getPeserta()));
+        }
+        
+        return res;
+    }
+
+    private UserSummaryResponse mapToUserSummaryResponse(User user) {
+        return UserSummaryResponse.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .fullName(user.getFullName())
+                .role(user.getRole().name())
+                .build();
     }
 }
