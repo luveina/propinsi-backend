@@ -3,6 +3,7 @@ package com.propinsi.backend.mengelola_lomba.model;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
+import org.hibernate.annotations.Where;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,6 +14,7 @@ import com.propinsi.backend.model.User;
 @Entity
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
+@Where(clause = "is_deleted = false")
 public class Lomba {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -69,4 +71,7 @@ public class Lomba {
     @OneToMany(mappedBy = "lomba", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private List<Gantangan> listGantangan;
+
+    @Column(name = "is_deleted", nullable = false, columnDefinition = "boolean not null default false")
+    private boolean isDeleted = false;
 }

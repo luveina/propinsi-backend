@@ -5,6 +5,7 @@ import com.propinsi.backend.mengelola_lomba.restdto.request.LombaRequest;
 import com.propinsi.backend.mengelola_lomba.restdto.response.LombaResponse;
 import com.propinsi.backend.mengelola_lomba.restdto.response.UserSummaryResponse;
 import com.propinsi.backend.mengelola_lomba.service.LombaService;
+import com.propinsi.backend.restdto.response.BaseResponse;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -22,7 +23,7 @@ public class LombaController {
     @Autowired
     private LombaService lombaService;
 
-    @PreAuthorize("hasAnyAuthority('KOORDINATOR_LOMBA', 'ADMIN')") 
+    @PreAuthorize("hasAnyRole('KOORDINATOR_LOMBA', 'ADMIN')") 
     @PostMapping
     public ResponseEntity<LombaResponse> createLomba(@Valid @RequestBody LombaRequest request) {
         LombaResponse response = lombaService.createLomba(request);
@@ -39,7 +40,7 @@ public class LombaController {
         return ResponseEntity.ok(lombaService.getAllLomba());
     }
 
-    @PreAuthorize("hasAnyAuthority('KOORDINATOR_LOMBA', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('KOORDINATOR_LOMBA', 'ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<LombaResponse> updateLomba(
             @PathVariable UUID id, 
@@ -48,7 +49,7 @@ public class LombaController {
         return ResponseEntity.ok(response);
     }
 
-    @PreAuthorize("hasAnyAuthority('KOORDINATOR_LOMBA', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('KOORDINATOR_LOMBA', 'ADMIN')")
     @PostMapping("/{lombaId}/assign-juri")
     public ResponseEntity<LombaResponse> assignJuri(
             @PathVariable UUID lombaId,
@@ -58,7 +59,7 @@ public class LombaController {
         return ResponseEntity.ok(response);
     }
 
-    @PreAuthorize("hasAnyAuthority('KOORDINATOR_LOMBA', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('KOORDINATOR_LOMBA', 'ADMIN')")
     @DeleteMapping("/{lombaId}/remove-juri/{juriId}")
     public ResponseEntity<LombaResponse> removeJuri(
             @PathVariable UUID lombaId,
@@ -68,9 +69,16 @@ public class LombaController {
         return ResponseEntity.ok(response);
     }
 
-    @PreAuthorize("hasAnyAuthority('KOORDINATOR_LOMBA', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('KOORDINATOR_LOMBA', 'ADMIN')")
     @GetMapping("/available-juri")
     public ResponseEntity<List<UserSummaryResponse>> getAvailableJuri() {
         return ResponseEntity.ok(lombaService.getAvailableJuri());
+    }
+
+    @PreAuthorize("hasAnyRole('KOORDINATOR_LOMBA', 'ADMIN')")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<BaseResponse<Void>> deleteLomba(@PathVariable UUID id) {
+        lombaService.deleteLomba(id);
+        return ResponseEntity.ok(BaseResponse.success(null, "Lomba berhasil dihapus"));
     }
 }
