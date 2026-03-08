@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.Where;
+import org.hibernate.annotations.ColumnDefault;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -40,6 +41,11 @@ public class User implements UserDetails {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
+
+    @Column(nullable = false)
+    @ColumnDefault("'Active'")
+    @Builder.Default
+    private String status = "Active";
 
     // detect first login
     @Column(nullable = false)
@@ -80,4 +86,7 @@ public class User implements UserDetails {
 
     @Override
     public boolean isEnabled() { return !isDeleted; }
+
+    private String createdBy;
+    private String updatedBy;
 }

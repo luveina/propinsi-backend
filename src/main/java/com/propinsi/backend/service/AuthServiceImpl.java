@@ -34,7 +34,7 @@ public class AuthServiceImpl implements AuthService{
     public JwtResponse login(LoginRequest req) {
         // check soft delete
         User userCheck = userDb.findByUsername(req.getUsername())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Username atau Password salah"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Akun tidak ditemukan."));
         
         if (userCheck.isDeleted()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Akun tidak ditemukan.");
@@ -53,6 +53,7 @@ public class AuthServiceImpl implements AuthService{
                 jwt,
                 user.getId(),
                 user.getUsername(),
+                user.getFullName(),
                 user.getRole().name(),
                 user.isFirstLogin() 
         );
@@ -61,7 +62,7 @@ public class AuthServiceImpl implements AuthService{
     @Override
     public void updateInitialPassword(String username, ChangePasswordRequest req) {
         User user = userDb.findByUsername(username)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User tidak ditemukan"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Akun tidak ditemukan."));
 
         if (!user.isFirstLogin()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, 

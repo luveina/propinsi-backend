@@ -1,7 +1,10 @@
 package com.propinsi.backend.advice;
 
 import com.propinsi.backend.restdto.response.BaseResponse;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -19,6 +22,12 @@ public class GlobalExceptionHandler {
                 .body(BaseResponse.error((int) ex.getStatusCode().value(), ex.getReason()));
     }
 
+    @ExceptionHandler(org.springframework.security.authentication.BadCredentialsException.class)
+    public ResponseEntity<BaseResponse<Void>> handleBadCredentials(BadCredentialsException ex) {
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(BaseResponse.error(401, "Username atau Password salah."));
+    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<BaseResponse<Void>> handleValidationException(MethodArgumentNotValidException ex) {
@@ -33,7 +42,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<BaseResponse<Void>> handleGeneralException(Exception ex) {
-        ex.printStackTrace(); // Print error di console biar kita tau
+        ex.printStackTrace(); 
         return ResponseEntity
                 .internalServerError()
                 .body(BaseResponse.error(500, "Terjadi kesalahan pada server: " + ex.getMessage()));
