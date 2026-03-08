@@ -16,4 +16,5 @@ public interface LombaService {
     LombaResponse assignJuriToLomba(UUID lombaId, AssignJuriRequest request);
     LombaResponse removeJuriFromLomba(UUID lombaId, Long juriId);
     List<UserSummaryResponse> getAvailableJuri();
+    void deleteLomba(UUID id);
 }

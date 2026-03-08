@@ -238,4 +238,23 @@ public class LombaServiceImpl implements LombaService {
                 .role(user.getRole().name())
                 .build();
     }
+
+    @Override
+    public void deleteLomba(UUID id) {
+        Lomba lomba = lombaRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lomba tidak ditemukan"));
+
+        if (hasRegistrants(id)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lomba sudah memiliki peserta, tidak dapat dihapus");
+        }
+
+        lomba.setStatus(StatusLomba.DIBATALKAN);
+        lomba.setDeleted(true);
+        lombaRepository.save(lomba);
+    }
+
+    private boolean hasRegistrants(UUID id) {
+        // TODO: Connect to PendaftaranRepository later
+        return false;
+    }
 }
