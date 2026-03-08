@@ -3,11 +3,13 @@ package com.propinsi.backend.restcontroller;
 import com.propinsi.backend.model.User;
 import com.propinsi.backend.restdto.request.AdminRegisterRequest;
 import com.propinsi.backend.restdto.response.BaseResponse;
+import com.propinsi.backend.service.AccountService;
 import com.propinsi.backend.service.AdminService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
@@ -92,5 +94,18 @@ public class AccountRestController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Akun tidak ditemukan");
         }
         return ResponseEntity.ok(BaseResponse.success(null, "Akun berhasil dinonaktifkan"));
+    }
+
+    @Autowired
+    private AccountService accountService;
+
+    // PBI-10: Reset Password (Hanya Admin)
+    @PreAuthorize("hasRole('ADMIN')") // Proteksi khusus Admin (Sesuai AC BE point 1)
+    @PutMapping("/{id}/reset")
+    public ResponseEntity<BaseResponse<Void>> resetPassword(@PathVariable Long id) {
+        accountService.resetPassword(id);
+        
+        // Return 200 OK (Sesuai AC BE point 3)
+        return ResponseEntity.ok(BaseResponse.success(null, "Password akun berhasil direset ke default"));
     }
 }
