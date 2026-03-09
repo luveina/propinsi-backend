@@ -1,6 +1,7 @@
 package com.propinsi.backend.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Pattern;
 import lombok.*;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
@@ -36,6 +37,7 @@ public class User implements UserDetails {
     private String fullName;
 
     @Column(nullable = false)
+    @Pattern(regexp = "^08\\d{8,11}$", message = "Nomor telepon harus dimulai dengan 08 dan terdiri dari 10-13 digit")
     private String phoneNumber;
 
     @Enumerated(EnumType.STRING)

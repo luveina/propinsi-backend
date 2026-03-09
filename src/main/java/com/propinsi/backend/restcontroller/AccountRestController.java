@@ -85,9 +85,16 @@ public class AccountRestController {
 
     /**
      * Soft delete / deactivate akun. Change status to "Inactive".
+     * Tidak boleh menghapus akun dengan role ADMIN.
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<BaseResponse<Void>> deactivate(@PathVariable Long id) {
+        // Cek apakah user yang akan dihapus adalah ADMIN
+        User userToDelete = adminService.findById(id);
+        if (userToDelete != null && userToDelete.getRole().toString().equals("ADMIN")) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Tidak dapat menghapus akun dengan role ADMIN");
+        }
+        
         String adminName = SecurityContextHolder.getContext().getAuthentication().getName();
         User deact = adminService.deactivateUser(id, adminName);
         if (deact == null) {
