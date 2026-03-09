@@ -91,7 +91,7 @@ public class AccountRestController {
     public ResponseEntity<BaseResponse<Void>> deactivate(@PathVariable Long id) {
         // Cek apakah user yang akan dihapus adalah ADMIN
         User userToDelete = adminService.findById(id);
-        if (userToDelete != null && userToDelete.getRole().toString().equals("ADMIN")) {
+        if (userToDelete != null && userToDelete.getRole().getLabel().equals("Admin")) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Tidak dapat menghapus akun dengan role ADMIN");
         }
         
