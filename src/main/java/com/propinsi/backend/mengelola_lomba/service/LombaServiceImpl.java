@@ -1,6 +1,7 @@
 package com.propinsi.backend.mengelola_lomba.service;
 
 import com.propinsi.backend.mengelola_lomba.model.Gantangan;
+import com.propinsi.backend.mengelola_lomba.model.JenisBurung;
 import com.propinsi.backend.mengelola_lomba.model.Lomba;
 import com.propinsi.backend.mengelola_lomba.model.StatusLomba;
 import com.propinsi.backend.mengelola_lomba.repository.GantanganRepository;
@@ -18,6 +19,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+
+import com.propinsi.backend.mengelola_lomba.repository.LombaSpecification;
+import org.springframework.data.domain.Sort;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -79,7 +83,64 @@ public class LombaServiceImpl implements LombaService {
 
     @Override
     public List<LombaResponse> getAllLomba() {
-        return lombaRepository.findAll().stream()
+        return getAllLomba(null, null, null, null, false);
+    }
+
+    @Override
+    public List<LombaResponse> getAllLomba(String jenisBurung, String status, String sortBy, String sortDir, boolean includeAll) {
+        JenisBurung jenisBurungEnum = null;
+        if (jenisBurung != null && !jenisBurung.isEmpty()) {
+            try { jenisBurungEnum = JenisBurung.valueOf(jenisBurung); } catch (IllegalArgumentException ignored) {}
+        }
+
+        StatusLomba statusEnum = null;
+        if (status != null && !status.isEmpty()) {
+            try { statusEnum = StatusLomba.valueOf(status); } catch (IllegalArgumentException ignored) {}
+        }
+
+        final JenisBurung finalJenis = jenisBurungEnum;
+        final StatusLomba finalStatus = statusEnum;
+
+        List<Lomba> lombaList;
+
+        if (includeAll) {
+            // Admin & Koordinator: ambil semua termasuk yang status=DIBATALKAN
+            lombaList = lombaRepository.findAllIncludingDeleted();
+            // Filter manual di Java
+            lombaList = lombaList.stream()
+                    .filter(l -> finalJenis == null || l.getJenisBurung() == finalJenis)
+                    .filter(l -> finalStatus == null || l.getStatus() == finalStatus)
+                    .collect(Collectors.toList());
+        } else {
+            // Peserta & lainnya: status DIBATALKAN otomatis dikecualikan via @Where
+            Sort sort = Sort.unsorted();
+            if (sortBy != null && !sortBy.isEmpty()) {
+                Sort.Direction dir = "desc".equalsIgnoreCase(sortDir) ? Sort.Direction.DESC : Sort.Direction.ASC;
+                sort = Sort.by(dir, sortBy);
+            }
+            lombaList = lombaRepository.findAll(LombaSpecification.filter(finalJenis, finalStatus, true), sort);
+        }
+
+        // Sorting untuk includeAll path
+        if (includeAll && sortBy != null && !sortBy.isEmpty()) {
+            final boolean desc = "desc".equalsIgnoreCase(sortDir);
+            lombaList = lombaList.stream().sorted((a, b) -> {
+                try {
+                    java.lang.reflect.Method getter = Lomba.class.getMethod(
+                            "get" + sortBy.substring(0, 1).toUpperCase() + sortBy.substring(1));
+                    Comparable valA = (Comparable) getter.invoke(a);
+                    Comparable valB = (Comparable) getter.invoke(b);
+                    if (valA == null) return desc ? 1 : -1;
+                    if (valB == null) return desc ? -1 : 1;
+                    int cmp = valA.compareTo(valB);
+                    return desc ? -cmp : cmp;
+                } catch (Exception e) {
+                    return 0;
+                }
+            }).collect(Collectors.toList());
+        }
+
+        return lombaList.stream()
                 .map(this::mapToLombaResponse)
                 .collect(Collectors.toList());
     }
@@ -248,8 +309,10 @@ public class LombaServiceImpl implements LombaService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lomba sudah memiliki peserta, tidak dapat dihapus");
         }
 
+        // status=DIBATALKAN adalah satu-satunya mekanisme "hapus" (soft delete via enum)
+        // @Where(status != 'DIBATALKAN') otomatis menyembunyikannya dari user biasa
+        // Admin/koordinator bisa melihatnya via findAllIncludingDeleted() yang bypass @Where
         lomba.setStatus(StatusLomba.DIBATALKAN);
-        lomba.setDeleted(true);
         lombaRepository.save(lomba);
     }
 

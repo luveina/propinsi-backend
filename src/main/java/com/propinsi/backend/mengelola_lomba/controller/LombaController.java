@@ -11,6 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -36,8 +38,16 @@ public class LombaController {
     }
 
     @GetMapping
-    public ResponseEntity<List<LombaResponse>> getAllLomba() {
-        return ResponseEntity.ok(lombaService.getAllLomba());
+    public ResponseEntity<List<LombaResponse>> getAllLomba(
+            @RequestParam(required = false) String jenisBurung,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false) String sortDir) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean includeAll = auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN")
+                            || a.getAuthority().equals("ROLE_KOORDINATOR_LOMBA"));
+        return ResponseEntity.ok(lombaService.getAllLomba(jenisBurung, status, sortBy, sortDir, includeAll));
     }
 
     @PreAuthorize("hasAnyRole('KOORDINATOR_LOMBA', 'ADMIN')")
