@@ -1,14 +1,15 @@
 package com.propinsi.backend.service;
 
-import com.propinsi.backend.model.User;
-import com.propinsi.backend.repository.UserRepository;
-import com.propinsi.backend.restdto.request.UpdatePasswordRequest;
-import com.propinsi.backend.restdto.response.UserProfileResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+
+import com.propinsi.backend.model.User;
+import com.propinsi.backend.repository.UserRepository;
+import com.propinsi.backend.restdto.request.UpdatePasswordRequest;
+import com.propinsi.backend.restdto.response.UserProfileResponse;
 
 @Service
 public class ProfileServiceImpl implements ProfileService {
@@ -28,7 +29,7 @@ public class ProfileServiceImpl implements ProfileService {
                 .fullName(user.getFullName())
                 .username(user.getUsername())
                 .phoneNumber(user.getPhoneNumber())
-                .role(user.getRole().name())
+                .role(user.getRole().getLabel()) 
                 .build();
     }
 
