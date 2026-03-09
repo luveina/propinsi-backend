@@ -10,4 +10,5 @@ public interface AuthService {
     JwtResponse login(LoginRequest loginRequest);
     void register(RegisterRequest registerRequest);
     void updateInitialPassword(String username, ChangePasswordRequest req);
+    void logout(String token);
 }
