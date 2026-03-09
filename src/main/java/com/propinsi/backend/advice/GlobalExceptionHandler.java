@@ -1,9 +1,9 @@
 package com.propinsi.backend.advice;
 
 import com.propinsi.backend.restdto.response.BaseResponse;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -22,11 +22,18 @@ public class GlobalExceptionHandler {
                 .body(BaseResponse.error((int) ex.getStatusCode().value(), ex.getReason()));
     }
 
-    @ExceptionHandler(org.springframework.security.authentication.BadCredentialsException.class)
+    @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<BaseResponse<Void>> handleBadCredentials(BadCredentialsException ex) {
         return ResponseEntity
                 .status(HttpStatus.UNAUTHORIZED)
-                .body(BaseResponse.error(401, "Username atau Password salah."));
+                .body(BaseResponse.error(401, "Username atau Password salah"));
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<BaseResponse<Void>> handleAccessDeniedException(AccessDeniedException ex) {
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(BaseResponse.error(403, "Anda tidak memiliki akses ke fitur ini."));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -42,9 +49,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<BaseResponse<Void>> handleGeneralException(Exception ex) {
-        ex.printStackTrace(); 
         return ResponseEntity
-                .internalServerError()
-                .body(BaseResponse.error(500, "Terjadi kesalahan pada server: " + ex.getMessage()));
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(BaseResponse.error(500, "Terjadi kesalahan sistem, silakan hubungi admin."));
     }
 }
