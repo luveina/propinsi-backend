@@ -144,9 +144,9 @@ public class LombaServiceImpl implements LombaService {
                 throw new RuntimeException("User " + juri.getUsername() + " bukan JURI");
             }
             
-            if (lomba.getListJuri().contains(juri)) {
-                throw new RuntimeException("Juri " + juri.getFullName() + " sudah di-assign ke lomba ini");
-            }
+            // if (lomba.getListJuri().contains(juri)) {
+            //     throw new RuntimeException("Juri " + juri.getFullName() + " sudah di-assign ke lomba ini");
+            // }
             
             juriList.add(juri);
         }
