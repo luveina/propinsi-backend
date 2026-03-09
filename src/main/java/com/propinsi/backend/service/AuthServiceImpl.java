@@ -29,18 +29,15 @@ public class AuthServiceImpl implements AuthService{
     @Autowired private JwtUtils jwtUtils;
     @Autowired private PasswordEncoder passwordEncoder;
 
-    // login
     @Override
     public JwtResponse login(LoginRequest req) {
-        // check soft delete
         User userCheck = userDb.findByUsername(req.getUsername())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Akun tidak ditemukan."));
         
-        if (userCheck.isDeleted()) {
+        if ("Inactive".equalsIgnoreCase(userCheck.getStatus())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Akun tidak ditemukan.");
         }
 
-        // auth
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(req.getUsername(), req.getPassword()));
 
@@ -50,12 +47,8 @@ public class AuthServiceImpl implements AuthService{
         String jwt = jwtUtils.generateToken(user);
 
         return new JwtResponse(
-                jwt,
-                user.getId(),
-                user.getUsername(),
-                user.getFullName(),
-                user.getRole().name(),
-                user.isFirstLogin() 
+                jwt, user.getId(), user.getUsername(), user.getFullName(), 
+                user.getRole().name(), user.isFirstLogin() 
         );
     }
 
@@ -97,7 +90,7 @@ public class AuthServiceImpl implements AuthService{
                 .password(passwordEncoder.encode(req.getPassword()))
                 .role(Role.PESERTA) // default
                 .isFirstLogin(false) // no change pw
-                .isDeleted(false)
+                .status("Active")
                 .build();
 
         userDb.save(user);

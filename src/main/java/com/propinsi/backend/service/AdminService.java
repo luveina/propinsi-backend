@@ -4,12 +4,19 @@ import com.propinsi.backend.model.Role;
 import com.propinsi.backend.model.User;
 import com.propinsi.backend.repository.UserRepository;
 import com.propinsi.backend.restdto.request.AdminRegisterRequest;
+
+import jakarta.transaction.Transactional;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+
 import java.util.List;
 
 @Service
+@Transactional
 public class AdminService {
     @Autowired
     private UserRepository userRepository;
@@ -30,6 +37,7 @@ public class AdminService {
                 .password(encoder.encode("Silobur123!")) // Default password
                 .createdBy(adminName)
                 .updatedBy(adminName)
+                .isFirstLogin(true)
                 .build();
 
         return userRepository.save(user);
@@ -74,12 +82,13 @@ public class AdminService {
      * @return updated user or null if not found
      */
     public User deactivateUser(Long id, String adminName) {
-        User user = findById(id);
-        if (user == null) {
-            return null;
-        }
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User tidak ditemukan"));
+
         user.setStatus("Inactive");
         user.setUpdatedBy(adminName);
-        return userRepository.save(user);
+        userRepository.save(user); // Simpan status dulu
+        
+        return user;
     }
 }

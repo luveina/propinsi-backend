@@ -1,4 +1,5 @@
 package com.propinsi.backend.service;
+import com.propinsi.backend.model.User;
 import com.propinsi.backend.repository.UserRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +16,14 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        return userDb.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User tidak ditemukan dengan username: " + username));
+        User user = userDb.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("Akun tidak ditemukan"));
+    
+        // Proteksi tambahan jika filter Hibernate meleset
+        if (user.getStatus() == "Inactive") {
+            throw new UsernameNotFoundException("Akun tidak ditemukan.");
+        }
+    
+        return user;
     }
 }
