@@ -13,17 +13,22 @@ public class DotenvConfig implements ApplicationContextInitializer<ConfigurableA
 
     @Override
     public void initialize(ConfigurableApplicationContext applicationContext) {
-        Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
-        ConfigurableEnvironment environment = applicationContext.getEnvironment();
-        
-        Map<String, Object> dotenvMap = new HashMap<>();
+        try {
+            Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
+            ConfigurableEnvironment environment = applicationContext.getEnvironment();
 
-        System.getenv().forEach(dotenvMap::put);
+            Map<String, Object> dotenvMap = new HashMap<>();
+            dotenv.entries().forEach(entry -> {
+                dotenvMap.put(entry.getKey(), entry.getValue());
+            });
 
-        dotenv.entries().forEach(entry -> {
-            dotenvMap.put(entry.getKey(), entry.getValue());
-        });
-        
-        environment.getPropertySources().addFirst(new MapPropertySource("dotenvProperties", dotenvMap));
+            if (!dotenvMap.isEmpty()) {
+                environment.getPropertySources().addFirst(new MapPropertySource("dotenvProperties", dotenvMap));
+            }
+        } catch (Exception e) {
+            // .env file not available (e.g. on Koyeb) — Spring will resolve
+            // ${VAR} placeholders from OS environment variables natively
+            System.out.println("DotenvConfig: skipped loading .env file — " + e.getMessage());
+        }
     }
 }
