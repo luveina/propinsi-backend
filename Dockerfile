@@ -47,4 +47,4 @@ EXPOSE 8080
 
 # Use exec form to ensure the JVM receives OS signals (SIGTERM) correctly.
 # -XX:+UseContainerSupport lets the JVM honour cgroup memory/CPU limits.
-ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]
+ENTRYPOINT ["sh", "-c", "echo DEBUG_ENV_VARS: JWT_SECRET=$JWT_SECRET PGHOST=$PGHOST && java -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -jar app.jar"]
