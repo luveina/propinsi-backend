@@ -39,5 +39,4 @@ build/
 !.env.example
 
 ### Sensitive Config ###
-src/main/resources/application.properties
-!src/main/resources/application.properties.example
+src/main/resources/application.properties.example
