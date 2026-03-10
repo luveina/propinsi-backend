@@ -14,7 +14,7 @@ import com.propinsi.backend.model.User;
 @Entity
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
-@Where(clause = "is_deleted = false")
+@Where(clause = "status != 'DIBATALKAN'")
 public class Lomba {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -71,7 +71,4 @@ public class Lomba {
     @OneToMany(mappedBy = "lomba", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private List<Gantangan> listGantangan;
-
-    @Column(name = "is_deleted", nullable = false, columnDefinition = "boolean not null default false")
-    private boolean isDeleted = false;
 }

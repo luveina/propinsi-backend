@@ -22,7 +22,7 @@ public class BackendApplication {
 	            com.propinsi.backend.model.User admin = com.propinsi.backend.model.User.builder()
 	                    .username(username)
 	                    .fullName("Kimi Antonelli")
-	                    .phoneNumber("0000000000") // placeholder, update later
+	                    .phoneNumber("081234567890")
 	                    .password(encoder.encode("Silobur123!"))
 	                    .role(com.propinsi.backend.model.Role.ADMIN)
 	                    .status("Active")

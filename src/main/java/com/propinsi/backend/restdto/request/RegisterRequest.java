@@ -1,6 +1,7 @@
 package com.propinsi.backend.restdto.request;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -14,6 +15,7 @@ public class RegisterRequest {
     private String username;
 
     @NotBlank(message = "Nomor Telepon wajib diisi")
+    @Pattern(regexp = "^08\\d{8,11}$", message = "Nomor telepon harus dimulai dengan 08 dan terdiri dari 10-13 digit")
     private String phoneNumber;
 
     @NotBlank(message = "Password wajib diisi")

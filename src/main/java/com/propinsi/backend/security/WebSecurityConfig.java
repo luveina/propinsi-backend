@@ -1,6 +1,7 @@
 package com.propinsi.backend.security;
 
 import com.propinsi.backend.service.UserDetailsServiceImpl;
+import org.springframework.http.HttpMethod;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -36,9 +37,9 @@ public class WebSecurityConfig {
                 // akun hanya untuk admin
                 .requestMatchers("/api/accounts/**").hasRole("ADMIN")
                 
-                // Lomba - CRUD hanya untuk ADMIN dan KOORDINATOR_LOMBA
+                // Lomba - GET boleh semua user (login); CUD dijaga @PreAuthorize di controller
                 .requestMatchers("/api/lomba/available-juri").hasAnyRole("ADMIN", "KOORDINATOR_LOMBA")
-                .requestMatchers("/api/lomba/**").hasAnyRole("ADMIN", "KOORDINATOR_LOMBA")
+                .requestMatchers(HttpMethod.GET, "/api/lomba", "/api/lomba/**").authenticated()
                 
                 // Gantangan - hanya PESERTA yang bisa daftar
                 .requestMatchers("/api/gantangan/register").hasRole("PESERTA")
