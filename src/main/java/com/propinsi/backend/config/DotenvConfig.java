@@ -17,6 +17,9 @@ public class DotenvConfig implements ApplicationContextInitializer<ConfigurableA
         ConfigurableEnvironment environment = applicationContext.getEnvironment();
         
         Map<String, Object> dotenvMap = new HashMap<>();
+
+        System.getenv().forEach(dotenvMap::put);
+
         dotenv.entries().forEach(entry -> {
             dotenvMap.put(entry.getKey(), entry.getValue());
         });
