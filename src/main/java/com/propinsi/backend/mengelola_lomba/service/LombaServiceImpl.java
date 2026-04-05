@@ -200,21 +200,21 @@ public class LombaServiceImpl implements LombaService {
         for (Long juriId : request.getJuriIds()) {
             User juri = userRepository.findById(juriId)
                     .orElseThrow(() -> new RuntimeException("User dengan ID " + juriId + " tidak ditemukan"));
-            
+
             if (juri.getRole() != Role.JURI) {
                 throw new RuntimeException("User " + juri.getUsername() + " bukan JURI");
             }
-            
+
             // if (lomba.getListJuri().contains(juri)) {
             //     throw new RuntimeException("Juri " + juri.getFullName() + " sudah di-assign ke lomba ini");
             // }
-            
+
             juriList.add(juri);
         }
 
         lomba.getListJuri().addAll(juriList);
         Lomba savedLomba = lombaRepository.save(lomba);
-        
+
         return mapToLombaResponse(savedLomba);
     }
 
@@ -222,15 +222,15 @@ public class LombaServiceImpl implements LombaService {
     public LombaResponse removeJuriFromLomba(UUID lombaId, Long juriId) {
         Lomba lomba = lombaRepository.findById(lombaId)
                 .orElseThrow(() -> new RuntimeException("Lomba tidak ditemukan"));
-        
+
         User juri = userRepository.findById(juriId)
                 .orElseThrow(() -> new RuntimeException("Juri tidak ditemukan"));
-        
+
         boolean removed = lomba.getListJuri().removeIf(u -> u.getId().equals(juriId));
         if (!removed) {
             throw new RuntimeException("Juri tidak terdaftar di lomba ini");
         }
-        
+
         Lomba savedLomba = lombaRepository.save(lomba);
         return mapToLombaResponse(savedLomba);
     }
@@ -238,9 +238,9 @@ public class LombaServiceImpl implements LombaService {
     @Override
     public List<UserSummaryResponse> getAvailableJuri() {
         List<User> juriList = userRepository.findAll().stream()
-                .filter(u -> u.getRole() == Role.JURI && !u.isDeleted())
+            .filter(u -> u.getRole() == Role.JURI && u.isEnabled())
                 .collect(Collectors.toList());
-        
+
         return juriList.stream()
                 .map(this::mapToUserSummaryResponse)
                 .collect(Collectors.toList());
@@ -274,7 +274,7 @@ public class LombaServiceImpl implements LombaService {
                     .collect(Collectors.toList());
             response.setListGantangan(gantanganResponses);
         }
-        
+
         return response;
     }
 
@@ -283,11 +283,11 @@ public class LombaServiceImpl implements LombaService {
         res.setId(g.getId());
         res.setNomorGantangan(g.getNomorGantangan());
         res.setIsAvailable(g.getIsAvailable());
-        
+
         if (g.getPeserta() != null) {
             res.setPeserta(mapToUserSummaryResponse(g.getPeserta()));
         }
-        
+
         return res;
     }
 
