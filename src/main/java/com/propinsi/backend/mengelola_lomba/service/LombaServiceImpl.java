@@ -305,6 +305,11 @@ public class LombaServiceImpl implements LombaService {
         Lomba lomba = lombaRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lomba tidak ditemukan"));
 
+        if (lomba.getStatus() != StatusLomba.BELUM_DIMULAI) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Lomba hanya dapat dihapus jika berstatus 'Belum Dimulai'");
+        }
+
         if (hasRegistrants(id)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lomba sudah memiliki peserta, tidak dapat dihapus");
         }
