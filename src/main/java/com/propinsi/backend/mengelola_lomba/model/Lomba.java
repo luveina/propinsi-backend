@@ -65,6 +65,9 @@ public class Lomba {
     @NotBlank(message = "Contact Person wajib diisi")
     private String contactPerson;
 
+    @Column(columnDefinition = "TEXT")
+    private String deskripsi;
+
     @Enumerated(EnumType.STRING)
     private StatusLomba status = StatusLomba.BELUM_DIMULAI;
 

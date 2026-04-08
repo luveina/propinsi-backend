@@ -57,6 +57,7 @@ public class LombaServiceImpl implements LombaService {
         lomba.setJumlahJuri(request.getJumlahJuri());
         lomba.setContactPerson(request.getContactPerson());
         lomba.setStatus(StatusLomba.BELUM_DIMULAI);
+        lomba.setDeskripsi(request.getDeskripsi());
 
         Lomba savedLomba = lombaRepository.save(lomba);
 
@@ -182,6 +183,7 @@ public class LombaServiceImpl implements LombaService {
         lomba.setJumlahJuara(request.getHadiah() != null ? request.getHadiah().size() : 0);
         lomba.setJumlahJuri(request.getJumlahJuri());
         lomba.setContactPerson(request.getContactPerson());
+        lomba.setDeskripsi(request.getDeskripsi());
 
         Lomba updatedLomba = lombaRepository.save(lomba);
         return mapToLombaResponse(updatedLomba);
@@ -260,6 +262,8 @@ public class LombaServiceImpl implements LombaService {
         response.setJumlahJuri(lomba.getJumlahJuri());
         response.setContactPerson(lomba.getContactPerson());
         response.setStatus(lomba.getStatus());
+        response.setDeskripsi(lomba.getDeskripsi());
+
 
         if (lomba.getListJuri() != null) {
             List<UserSummaryResponse> juriResponses = lomba.getListJuri().stream()
