@@ -1,12 +1,9 @@
-# Load .env file for local development (optional - won't fail if not found)
-spring.config.import=optional:file:.env[.properties]
-
 # ==========================================
 # 1. KONFIGURASI DATABASE
 # ==========================================
-spring.datasource.url=jdbc:postgresql://${PGHOST}/${PGDATABASE}?sslmode=${PGSSLMODE}
-spring.datasource.username=${PGUSER}
-spring.datasource.password=${PGPASSWORD}
+spring.datasource.url=jdbc:postgresql://<host>/<dbname>?sslmode=require
+spring.datasource.username=<db_username>
+spring.datasource.password=<db_password>
 spring.datasource.driver-class-name=org.postgresql.Driver
 
 spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
@@ -17,5 +14,5 @@ spring.jpa.show-sql=true
 # ==========================================
 # 2. KONFIGURASI JWT
 # ==========================================
-silobur.app.jwtSecret=${JWT_SECRET}
+silobur.app.jwtSecret=<random_base64_secret_min_64_chars>
 silobur.app.jwtExpirationMs=86400000

@@ -35,3 +35,8 @@ build/
 
 ### Environment Variables ###
 .env
+.env.*
+!.env.example
+
+### Sensitive Config ###
+!src/main/resources/application.properties.example
