@@ -2,7 +2,7 @@ package com.propinsi.backend.pendaftaran_lomba.scheduler;
 
 import com.propinsi.backend.mengelola_lomba.model.Gantangan;
 import com.propinsi.backend.pendaftaran_lomba.model.StatusGantangan;
-import com.propinsi.backend.pendaftaran_lomba.repository.ReservasiRepository;
+import com.propinsi.backend.pendaftaran_lomba.repository.ReservasiGantanganRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -16,14 +16,14 @@ import java.util.stream.Collectors;
 public class ReservasiCleanupScheduler {
 
     @Autowired
-    private ReservasiRepository reservasiRepository;
+    private ReservasiGantanganRepository reservasiGantanganRepository;
 
     @Scheduled(fixedRate = 60000) // Jalan tiap 1 menit
     @Transactional
     public void cleanupExpiredBookings() {
         LocalDateTime limitTime = LocalDateTime.now().minusHours(2);
         
-        List<Gantangan> expired = reservasiRepository.findAll().stream()
+        List<Gantangan> expired = reservasiGantanganRepository.findAll().stream()
                 .filter(g -> g.getStatus() == StatusGantangan.BOOKED && g.getBookedAt() != null && g.getBookedAt().isBefore(limitTime))
                 .collect(Collectors.toList());
 
@@ -32,6 +32,6 @@ public class ReservasiCleanupScheduler {
             g.setPeserta(null);
             g.setBookedAt(null);
         }
-        reservasiRepository.saveAll(expired);
+        reservasiGantanganRepository.saveAll(expired);
     }
 }
