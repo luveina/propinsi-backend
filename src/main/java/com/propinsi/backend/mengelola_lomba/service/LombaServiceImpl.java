@@ -58,6 +58,7 @@ public class LombaServiceImpl implements LombaService {
         lomba.setJumlahJuri(request.getJumlahJuri());
         lomba.setContactPerson(request.getContactPerson());
         lomba.setStatus(StatusLomba.BELUM_DIMULAI);
+        lomba.setDeskripsi(request.getDeskripsi());
 
         Lomba savedLomba = lombaRepository.save(lomba);
 
@@ -183,6 +184,7 @@ public class LombaServiceImpl implements LombaService {
         lomba.setJumlahJuara(request.getHadiah() != null ? request.getHadiah().size() : 0);
         lomba.setJumlahJuri(request.getJumlahJuri());
         lomba.setContactPerson(request.getContactPerson());
+        lomba.setDeskripsi(request.getDeskripsi());
 
         Lomba updatedLomba = lombaRepository.save(lomba);
         return mapToLombaResponse(updatedLomba);
@@ -201,21 +203,21 @@ public class LombaServiceImpl implements LombaService {
         for (Long juriId : request.getJuriIds()) {
             User juri = userRepository.findById(juriId)
                     .orElseThrow(() -> new RuntimeException("User dengan ID " + juriId + " tidak ditemukan"));
-            
+
             if (juri.getRole() != Role.JURI) {
                 throw new RuntimeException("User " + juri.getUsername() + " bukan JURI");
             }
-            
+
             // if (lomba.getListJuri().contains(juri)) {
             //     throw new RuntimeException("Juri " + juri.getFullName() + " sudah di-assign ke lomba ini");
             // }
-            
+
             juriList.add(juri);
         }
 
         lomba.getListJuri().addAll(juriList);
         Lomba savedLomba = lombaRepository.save(lomba);
-        
+
         return mapToLombaResponse(savedLomba);
     }
 
@@ -223,15 +225,15 @@ public class LombaServiceImpl implements LombaService {
     public LombaResponse removeJuriFromLomba(UUID lombaId, Long juriId) {
         Lomba lomba = lombaRepository.findById(lombaId)
                 .orElseThrow(() -> new RuntimeException("Lomba tidak ditemukan"));
-        
+
         User juri = userRepository.findById(juriId)
                 .orElseThrow(() -> new RuntimeException("Juri tidak ditemukan"));
-        
+
         boolean removed = lomba.getListJuri().removeIf(u -> u.getId().equals(juriId));
         if (!removed) {
             throw new RuntimeException("Juri tidak terdaftar di lomba ini");
         }
-        
+
         Lomba savedLomba = lombaRepository.save(lomba);
         return mapToLombaResponse(savedLomba);
     }
@@ -239,9 +241,9 @@ public class LombaServiceImpl implements LombaService {
     @Override
     public List<UserSummaryResponse> getAvailableJuri() {
         List<User> juriList = userRepository.findAll().stream()
-                .filter(u -> u.getRole() == Role.JURI && !u.isDeleted())
+            .filter(u -> u.getRole() == Role.JURI && u.isEnabled())
                 .collect(Collectors.toList());
-        
+
         return juriList.stream()
                 .map(this::mapToUserSummaryResponse)
                 .collect(Collectors.toList());
@@ -261,6 +263,8 @@ public class LombaServiceImpl implements LombaService {
         response.setJumlahJuri(lomba.getJumlahJuri());
         response.setContactPerson(lomba.getContactPerson());
         response.setStatus(lomba.getStatus());
+        response.setDeskripsi(lomba.getDeskripsi());
+
 
         if (lomba.getListJuri() != null) {
             List<UserSummaryResponse> juriResponses = lomba.getListJuri().stream()
@@ -275,7 +279,7 @@ public class LombaServiceImpl implements LombaService {
                     .collect(Collectors.toList());
             response.setListGantangan(gantanganResponses);
         }
-        
+
         return response;
     }
 
@@ -288,7 +292,7 @@ public class LombaServiceImpl implements LombaService {
         if (g.getPeserta() != null) {
             res.setPeserta(mapToUserSummaryResponse(g.getPeserta()));
         }
-        
+
         return res;
     }
 

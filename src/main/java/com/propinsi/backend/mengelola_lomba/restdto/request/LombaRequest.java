@@ -38,4 +38,6 @@ public class LombaRequest {
 
     @NotBlank(message = "Contact Person wajib diisi")
     private String contactPerson;
+
+    private String deskripsi;
 }
