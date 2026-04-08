@@ -13,6 +13,7 @@ import com.propinsi.backend.mengelola_lomba.restdto.response.LombaResponse;
 import com.propinsi.backend.mengelola_lomba.restdto.response.UserSummaryResponse;
 import com.propinsi.backend.model.Role;
 import com.propinsi.backend.model.User;
+import com.propinsi.backend.pendaftaran_lomba.model.StatusGantangan;
 import com.propinsi.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -64,7 +65,7 @@ public class LombaServiceImpl implements LombaService {
         for (int i = 1; i <= 24; i++) {
             Gantangan gantangan = new Gantangan();
             gantangan.setNomorGantangan(i);
-            gantangan.setIsAvailable(true);
+            gantangan.setStatus(StatusGantangan.AVAILABLE); 
             gantangan.setLomba(savedLomba);
             listGantangan.add(gantangan);
         }
@@ -163,7 +164,7 @@ public class LombaServiceImpl implements LombaService {
         }
 
         boolean hasPeserta = lomba.getListGantangan().stream()
-                .anyMatch(g -> g.getPeserta() != null || !g.getIsAvailable());
+            .anyMatch(g -> g.getPeserta() != null || g.getStatus() != StatusGantangan.AVAILABLE);
         if (hasPeserta) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Gagal update karena sudah ada peserta yang mendaftar di lomba ini");
         }
@@ -282,7 +283,7 @@ public class LombaServiceImpl implements LombaService {
         GantanganResponse res = new GantanganResponse();
         res.setId(g.getId());
         res.setNomorGantangan(g.getNomorGantangan());
-        res.setIsAvailable(g.getIsAvailable());
+        res.setStatus(g.getStatus() != null ? g.getStatus().name() : "AVAILABLE");
         
         if (g.getPeserta() != null) {
             res.setPeserta(mapToUserSummaryResponse(g.getPeserta()));

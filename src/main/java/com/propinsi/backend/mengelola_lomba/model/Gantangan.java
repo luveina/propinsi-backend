@@ -4,9 +4,12 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.*;
+
+import java.time.LocalDateTime;
 import java.util.UUID;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.propinsi.backend.model.User;
+import com.propinsi.backend.pendaftaran_lomba.model.StatusGantangan;
 
 @Entity
 @Getter @Setter
@@ -20,7 +23,12 @@ public class Gantangan {
     @Min(1) @Max(24) //belum disesuaikan nomornya dgn yg ada di lapangan
     private Integer nomorGantangan;
 
+    @Enumerated(EnumType.STRING)
+    private StatusGantangan status = StatusGantangan.AVAILABLE;
+
     private Boolean isAvailable = true;
+
+    private LocalDateTime bookedAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "peserta_id")
