@@ -43,7 +43,7 @@ public class ReservasiServiceImpl implements ReservasiService  {
     private UserRepository userRepository;
     
     @Autowired
-    private GantanganRepository gantanganRepository; // Pastikan ini bisa diakses
+    private GantanganRepository gantanganRepository;
 
     @Autowired
     private ReservasiGantanganRepository reservasiGantanganRepository;
@@ -78,7 +78,6 @@ public class ReservasiServiceImpl implements ReservasiService  {
 
         return BookingResponse.builder()
                 .reservationId(gantangan.getId())
-                .expiryTime(gantangan.getBookedAt().plusHours(2)) // Expiry 2 jam
                 .build();
     }
 
