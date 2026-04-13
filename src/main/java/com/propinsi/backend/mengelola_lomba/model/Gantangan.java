@@ -22,6 +22,12 @@ public class Gantangan {
 
     private Boolean isAvailable = true;
 
+    @Enumerated(EnumType.STRING)
+    private GantanganStatus status = GantanganStatus.ACTIVE;
+
+    @Min(0) @Max(3)
+    private Integer warningCount = 0;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "peserta_id")
     private User peserta;
