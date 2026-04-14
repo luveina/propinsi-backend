@@ -158,11 +158,12 @@ public class ScoringServiceImpl implements ScoringService {
         }
 
         int currentWarning = gantangan.getWarningCount() == null ? 0 : gantangan.getWarningCount();
-        int updatedWarning = Math.min(3, currentWarning + 1);
+        int updatedWarning = currentWarning + 1;
         gantangan.setWarningCount(updatedWarning);
 
         if (updatedWarning >= 3) {
             gantangan.setStatus(GantanganStatus.DISQUALIFIED);
+            removeVotesForGantangan(gantangan);
         }
 
         return toGantanganResponse(gantanganRepository.save(gantangan));
@@ -186,8 +187,18 @@ public class ScoringServiceImpl implements ScoringService {
         gantangan.setStatus(GantanganStatus.DISQUALIFIED);
         int currentWarning = gantangan.getWarningCount() == null ? 0 : gantangan.getWarningCount();
         gantangan.setWarningCount(Math.max(currentWarning, 1));
+        
+        removeVotesForGantangan(gantangan);
 
         return toGantanganResponse(gantanganRepository.save(gantangan));
+    }
+
+    private void removeVotesForGantangan(Gantangan gantangan) {
+        List<ScoringVote> votes = scoringVoteRepository.findBySelectedGantangansContains(gantangan);
+        for (ScoringVote vote : votes) {
+            vote.getSelectedGantangans().remove(gantangan);
+            scoringVoteRepository.save(vote);
+        }
     }
 
     private User getJuriById(Long juriId) {

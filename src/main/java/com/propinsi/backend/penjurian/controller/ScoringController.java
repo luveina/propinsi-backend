@@ -1,6 +1,7 @@
 package com.propinsi.backend.penjurian.controller;
 
 import com.propinsi.backend.model.User;
+import com.propinsi.backend.penjurian.restdto.request.ScoringActionRequest;
 import com.propinsi.backend.penjurian.restdto.request.ScoringVoteRequest;
 import com.propinsi.backend.penjurian.restdto.response.ScoringBlokDetailResponse;
 import com.propinsi.backend.penjurian.restdto.response.ScoringBlokSummaryResponse;
@@ -49,19 +50,19 @@ public class ScoringController {
         return ResponseEntity.ok(BaseResponse.success(scoringService.submitVote(lombaId, juriLogin.getId(), request), "Vote berhasil disimpan"));
     }
 
-    @PostMapping("/warning/{gantanganId}")
+    @PostMapping("/warning")
     public ResponseEntity<BaseResponse<ScoringGantanganResponse>> addWarning(
             @AuthenticationPrincipal User juriLogin,
             @RequestParam UUID lombaId,
-            @PathVariable UUID gantanganId) {
-        return ResponseEntity.ok(BaseResponse.success(scoringService.addWarning(lombaId, juriLogin.getId(), gantanganId), "Peringatan berhasil ditambahkan"));
+            @Valid @RequestBody ScoringActionRequest request) {
+        return ResponseEntity.ok(BaseResponse.success(scoringService.addWarning(lombaId, juriLogin.getId(), request.getGantanganId()), "Peringatan berhasil ditambahkan"));
     }
 
-    @PostMapping("/disqualify/{gantanganId}")
+    @PostMapping("/disqualify")
     public ResponseEntity<BaseResponse<ScoringGantanganResponse>> disqualify(
             @AuthenticationPrincipal User juriLogin,
             @RequestParam UUID lombaId,
-            @PathVariable UUID gantanganId) {
-        return ResponseEntity.ok(BaseResponse.success(scoringService.disqualify(lombaId, juriLogin.getId(), gantanganId), "Gantangan berhasil didiskualifikasi"));
+            @Valid @RequestBody ScoringActionRequest request) {
+        return ResponseEntity.ok(BaseResponse.success(scoringService.disqualify(lombaId, juriLogin.getId(), request.getGantanganId()), "Gantangan berhasil didiskualifikasi"));
     }
 }
