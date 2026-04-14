@@ -221,22 +221,25 @@ public class ScoringServiceImpl implements ScoringService {
     }
 
     private List<Gantangan> getGantanganByBlok(List<Gantangan> gantangan, Integer blokId) {
-        int total = gantangan.size();
-        int baseSize = total / 4;
-        int remainder = total % 4;
-
-        int start = 0;
-        for (int i = 1; i < blokId; i++) {
-            start += baseSize + (i <= remainder ? 1 : 0);
-        }
-        int blockSize = baseSize + (blokId <= remainder ? 1 : 0);
-
-        if (blockSize <= 0 || start >= total) {
-            return Collections.emptyList();
+        List<Integer> targetNomor = new ArrayList<>();
+        if (blokId == 1) {
+            targetNomor = java.util.Arrays.asList(9, 10, 8, 7, 1, 2);
+        } else if (blokId == 2) {
+            targetNomor = java.util.Arrays.asList(24, 23, 17, 18, 16, 15);
+        } else if (blokId == 3) {
+            targetNomor = java.util.Arrays.asList(22, 21, 19, 20, 14, 13);
+        } else if (blokId == 4) {
+            targetNomor = java.util.Arrays.asList(11, 12, 6, 5, 3, 4);
         }
 
-        int end = Math.min(start + blockSize, total);
-        return gantangan.subList(start, end);
+        List<Gantangan> result = new ArrayList<>();
+        for (Integer num : targetNomor) {
+            gantangan.stream()
+                .filter(g -> g.getNomorGantangan().equals(num))
+                .findFirst()
+                .ifPresent(result::add);
+        }
+        return result;
     }
 
     private void validateBlokId(Integer blokId) {
