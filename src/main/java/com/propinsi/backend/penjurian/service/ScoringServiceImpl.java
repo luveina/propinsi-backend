@@ -269,6 +269,6 @@ public class ScoringServiceImpl implements ScoringService {
     }
 
     private boolean isBooked(Gantangan g) {
-        return !Boolean.TRUE.equals(g.getIsAvailable());
+        return g.getStatus() == GantanganStatus.BOOKED;
     }
 }
