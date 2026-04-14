@@ -180,6 +180,10 @@ public class ScoringServiceImpl implements ScoringService {
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Gantangan tidak berada pada lomba yang dipilih");
         }
 
+        if (gantangan.getStatus() == GantanganStatus.DISQUALIFIED) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Gantangan sudah didiskualifikasi");
+        }
+
         if (!isBooked(gantangan)) {
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Gantangan belum dibooking peserta");
         }
@@ -280,6 +284,7 @@ public class ScoringServiceImpl implements ScoringService {
     }
 
     private boolean isBooked(Gantangan g) {
-        return g.getStatus() == GantanganStatus.BOOKED;
+        if (g.getPeserta() != null) return true;
+        return g.getStatus() == GantanganStatus.BOOKED || g.getStatus() == GantanganStatus.ACTIVE || g.getStatus() == GantanganStatus.DISQUALIFIED;
     }
 }
