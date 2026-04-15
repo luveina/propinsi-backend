@@ -1,35 +1,36 @@
 package com.propinsi.backend.mengelola_lomba.service;
 
-import com.propinsi.backend.mengelola_lomba.model.Gantangan;
-import com.propinsi.backend.mengelola_lomba.model.JenisBurung;
-import com.propinsi.backend.mengelola_lomba.model.Lomba;
-import com.propinsi.backend.mengelola_lomba.model.StatusLomba;
-import com.propinsi.backend.mengelola_lomba.repository.GantanganRepository;
-import com.propinsi.backend.mengelola_lomba.repository.LombaRepository;
-import com.propinsi.backend.mengelola_lomba.restdto.request.AssignJuriRequest;
-import com.propinsi.backend.mengelola_lomba.restdto.request.LombaRequest;
-import com.propinsi.backend.mengelola_lomba.restdto.response.GantanganResponse;
-import com.propinsi.backend.mengelola_lomba.restdto.response.LombaResponse;
-import com.propinsi.backend.mengelola_lomba.restdto.response.UserSummaryResponse;
-import com.propinsi.backend.model.Role;
-import com.propinsi.backend.model.User;
-import com.propinsi.backend.pendaftaran_lomba.model.StatusGantangan;
-import com.propinsi.backend.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
-
-import com.propinsi.backend.mengelola_lomba.repository.LombaSpecification;
-import org.springframework.data.domain.Sort;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+import com.propinsi.backend.mengelola_lomba.model.Gantangan;
+import com.propinsi.backend.mengelola_lomba.model.GantanganStatus;
+import com.propinsi.backend.mengelola_lomba.model.JenisBurung;
+import com.propinsi.backend.mengelola_lomba.model.Lomba;
+import com.propinsi.backend.mengelola_lomba.model.StatusLomba;
+import com.propinsi.backend.mengelola_lomba.repository.GantanganRepository;
+import com.propinsi.backend.mengelola_lomba.repository.LombaRepository;
+import com.propinsi.backend.mengelola_lomba.repository.LombaSpecification;
+import com.propinsi.backend.mengelola_lomba.restdto.request.AssignJuriRequest;
+import com.propinsi.backend.mengelola_lomba.restdto.request.LombaRequest;
+import com.propinsi.backend.mengelola_lomba.restdto.response.GantanganResponse;
+import com.propinsi.backend.mengelola_lomba.restdto.response.LombaDetailResponse;
+import com.propinsi.backend.mengelola_lomba.restdto.response.LombaResponse;
+import com.propinsi.backend.mengelola_lomba.restdto.response.UserSummaryResponse;
+import com.propinsi.backend.model.Role;
+import com.propinsi.backend.model.User;
+import com.propinsi.backend.repository.UserRepository;
 
 @Service
 @Transactional
@@ -66,7 +67,7 @@ public class LombaServiceImpl implements LombaService {
         for (int i = 1; i <= 24; i++) {
             Gantangan gantangan = new Gantangan();
             gantangan.setNomorGantangan(i);
-            gantangan.setStatus(StatusGantangan.AVAILABLE); 
+            gantangan.setStatus(GantanganStatus.AVAILABLE); 
             gantangan.setLomba(savedLomba);
             listGantangan.add(gantangan);
         }
@@ -165,7 +166,7 @@ public class LombaServiceImpl implements LombaService {
         }
 
         boolean hasPeserta = lomba.getListGantangan().stream()
-            .anyMatch(g -> g.getPeserta() != null || g.getStatus() != StatusGantangan.AVAILABLE);
+            .anyMatch(g -> g.getPeserta() != null || g.getStatus() != GantanganStatus.AVAILABLE);
         if (hasPeserta) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Gagal update karena sudah ada peserta yang mendaftar di lomba ini");
         }
@@ -324,5 +325,77 @@ public class LombaServiceImpl implements LombaService {
     private boolean hasRegistrants(UUID id) {
         // TODO: Connect to PendaftaranRepository later
         return false;
+    }
+
+    @Override
+    public LombaDetailResponse getLombaDetail(UUID id, User currentUser) {
+        Lomba lomba = lombaRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lomba tidak ditemukan"));
+
+        if (currentUser.getRole() == Role.JURI) {
+            boolean isAssigned = lomba.getListJuri().stream()
+                    .anyMatch(juri -> juri.getId().equals(currentUser.getId()));
+            if (!isAssigned) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Detail hanya tersedia untuk juri yang bertugas");
+            }
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime dDay = lomba.getWaktuTanggal();
+        
+        // H-1: True jika hari ini sebelum tanggal lomba
+        boolean isAtMostHMinus1 = now.toLocalDate().isBefore(dDay.toLocalDate());
+        boolean isToday = now.toLocalDate().isEqual(dDay.toLocalDate());
+
+        long bookedCount = lomba.getListGantangan().stream()
+                .filter(g -> g.getPeserta() != null).count();
+        boolean isFull = bookedCount >= 24;
+
+        // Mapping list gantangan untuk dikirim ke FE
+        List<GantanganResponse> gantanganResponses = lomba.getListGantangan().stream()
+                .map(this::mapToGantanganResponse)
+                .collect(Collectors.toList());
+
+        LombaDetailResponse.LombaDetailResponseBuilder builder = LombaDetailResponse.builder()
+                .id(lomba.getId())
+                .namaLomba(lomba.getNamaLomba())
+                .deskripsi(lomba.getDeskripsi() != null ? lomba.getDeskripsi() : "")
+                .lokasi(lomba.getLokasi())
+                .waktuTanggal(lomba.getWaktuTanggal())
+                .jenisBurung(lomba.getJenisBurung())
+                .kelas(lomba.getKelas())
+                .hargaTiket(lomba.getHargaTiket())
+                .hadiah(lomba.getHadiah())
+                .jumlahGantangan(24) 
+                .listGantangan(gantanganResponses) 
+                .contactPerson(lomba.getContactPerson())
+                .status(lomba.getStatus())
+                .isFullBooked(isFull);
+
+        Role userRole = currentUser.getRole();
+
+        builder.isEditable(userRole == Role.KOORDINATOR_LOMBA && lomba.getStatus() == StatusLomba.BELUM_DIMULAI && isAtMostHMinus1);
+        builder.canToggleOngoing(userRole == Role.KOORDINATOR_LOMBA && lomba.getStatus() == StatusLomba.BELUM_DIMULAI);
+        
+        builder.isReservable(userRole == Role.PESERTA && isAtMostHMinus1);
+        
+        builder.canStartJudging(userRole == Role.JURI && lomba.getStatus() == StatusLomba.BERLANGSUNG);
+        builder.canViewWinner(lomba.getStatus() == StatusLomba.SELESAI);
+
+        if (userRole != Role.PESERTA) {
+            builder.jumlahJuri(lomba.getJumlahJuri());
+            builder.listJuri(lomba.getListJuri().stream().map(this::mapToUserSummaryResponse).collect(Collectors.toList()));
+        }
+
+        return builder.build();
+    }
+
+    @Transactional
+    public void updateStatus(UUID id, StatusLomba newStatus) {
+        Lomba lomba = lombaRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lomba tidak ditemukan"));
+        
+        lomba.setStatus(newStatus);
+        lombaRepository.save(lomba); 
     }
 }

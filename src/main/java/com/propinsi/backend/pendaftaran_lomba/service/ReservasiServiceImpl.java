@@ -1,7 +1,6 @@
 package com.propinsi.backend.pendaftaran_lomba.service;
 
 import com.propinsi.backend.pendaftaran_lomba.model.Reservasi;
-import com.propinsi.backend.pendaftaran_lomba.model.StatusGantangan;
 import com.propinsi.backend.pendaftaran_lomba.model.StatusReservasi;
 import com.propinsi.backend.pendaftaran_lomba.repository.ReservasiGantanganRepository;
 import com.propinsi.backend.pendaftaran_lomba.repository.ReservasiRepository;
@@ -12,6 +11,7 @@ import com.propinsi.backend.pendaftaran_lomba.restdto.response.DenahResponse;
 import com.propinsi.backend.pendaftaran_lomba.restdto.response.ReservasiResponse;
 import com.propinsi.backend.repository.UserRepository;
 import com.propinsi.backend.mengelola_lomba.model.Gantangan;
+import com.propinsi.backend.mengelola_lomba.model.GantanganStatus;
 import com.propinsi.backend.mengelola_lomba.model.Lomba;
 import com.propinsi.backend.mengelola_lomba.repository.GantanganRepository;
 import com.propinsi.backend.mengelola_lomba.repository.LombaRepository;
@@ -67,11 +67,11 @@ public class ReservasiServiceImpl implements ReservasiService  {
         Gantangan gantangan = reservasiGantanganRepository.findByLombaIdAndNomorWithLock(request.getLombaId(), request.getNomorGantangan())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Gantangan tidak ditemukan"));
 
-        if (gantangan.getStatus() != StatusGantangan.AVAILABLE) {
+        if (gantangan.getStatus() != GantanganStatus.AVAILABLE) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Nomor gantangan sudah dipesan");
         }
 
-        gantangan.setStatus(StatusGantangan.BOOKED);
+        gantangan.setStatus(GantanganStatus.BOOKED);
         gantangan.setPeserta(peserta);
         gantangan.setBookedAt(LocalDateTime.now());
         reservasiGantanganRepository.save(gantangan);

@@ -9,5 +9,4 @@ import java.util.UUID;
 @Builder
 public class BookingResponse {
     private UUID reservationId;
-    private LocalDateTime expiryTime;
 }

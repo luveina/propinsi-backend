@@ -9,7 +9,6 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.propinsi.backend.model.User;
-import com.propinsi.backend.pendaftaran_lomba.model.StatusGantangan;
 
 @Entity
 @Getter @Setter
@@ -23,12 +22,18 @@ public class Gantangan {
     @Min(1) @Max(24) //belum disesuaikan nomornya dgn yg ada di lapangan
     private Integer nomorGantangan;
 
-    @Enumerated(EnumType.STRING)
-    private StatusGantangan status = StatusGantangan.AVAILABLE;
+    // @Enumerated(EnumType.STRING)
+    // private StatusGantangan status = StatusGantangan.AVAILABLE;
 
     private Boolean isAvailable = true;
 
     private LocalDateTime bookedAt;
+
+    @Enumerated(EnumType.STRING)
+    private GantanganStatus status = GantanganStatus.ACTIVE;
+
+    @Min(0) @Max(3)
+    private Integer warningCount = 0;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "peserta_id")

@@ -1,10 +1,13 @@
 package com.propinsi.backend.mengelola_lomba.controller;
 
+import com.propinsi.backend.mengelola_lomba.model.StatusLomba;
 import com.propinsi.backend.mengelola_lomba.restdto.request.AssignJuriRequest;
 import com.propinsi.backend.mengelola_lomba.restdto.request.LombaRequest;
+import com.propinsi.backend.mengelola_lomba.restdto.response.LombaDetailResponse;
 import com.propinsi.backend.mengelola_lomba.restdto.response.LombaResponse;
 import com.propinsi.backend.mengelola_lomba.restdto.response.UserSummaryResponse;
 import com.propinsi.backend.mengelola_lomba.service.LombaService;
+import com.propinsi.backend.model.User;
 import com.propinsi.backend.restdto.response.BaseResponse;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,10 +15,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -90,5 +95,20 @@ public class LombaController {
     public ResponseEntity<BaseResponse<Void>> deleteLomba(@PathVariable UUID id) {
         lombaService.deleteLomba(id);
         return ResponseEntity.ok(BaseResponse.success(null, "Lomba berhasil dihapus"));
+    }
+
+    @GetMapping("/detail/{id}")
+    public ResponseEntity<LombaDetailResponse> getLombaDetail(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(lombaService.getLombaDetail(id, currentUser));
+    }
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<?> updateStatus(@PathVariable UUID id, @RequestBody Map<String, String> request) {
+        String statusString = request.get("status");
+        StatusLomba status = StatusLomba.valueOf(statusString); 
+        lombaService.updateStatus(id, status);
+        return ResponseEntity.ok().build();
     }
 }
