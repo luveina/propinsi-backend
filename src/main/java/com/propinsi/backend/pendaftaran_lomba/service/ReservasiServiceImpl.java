@@ -20,11 +20,16 @@ import com.propinsi.backend.model.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.transaction.annotation.Transactional;
 
-
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -58,12 +63,11 @@ public class ReservasiServiceImpl implements ReservasiService  {
                 .collect(Collectors.toList());
     }
 
-    @Override
+@Override
     public BookingResponse bookSeat(BookingRequest request, String username) {
         User peserta = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User tidak ditemukan"));
 
-        // Mengambil data dengan Lock (Kriteria 409 Conflict)
         Gantangan gantangan = reservasiGantanganRepository.findByLombaIdAndNomorWithLock(request.getLombaId(), request.getNomorGantangan())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Gantangan tidak ditemukan"));
 
@@ -76,8 +80,19 @@ public class ReservasiServiceImpl implements ReservasiService  {
         gantangan.setBookedAt(LocalDateTime.now());
         reservasiGantanganRepository.save(gantangan);
 
+        Reservasi reservasi = new Reservasi();
+        reservasi.setPeserta(peserta);
+        reservasi.setLomba(gantangan.getLomba());
+        reservasi.setGantangan(gantangan);
+        reservasi.setWaktuReservasi(LocalDateTime.now());
+        reservasi.setNominal(gantangan.getLomba().getHargaTiket()); // Set nominal dari harga tiket lomba
+        reservasi.setStatus(StatusReservasi.BOOKED);
+        reservasi.setRejectionCount(0);
+        
+        Reservasi savedReservasi = reservasiRepository.save(reservasi);
+
         return BookingResponse.builder()
-                .reservationId(gantangan.getId())
+                .reservationId(savedReservasi.getId()) 
                 .build();
     }
 
@@ -120,5 +135,59 @@ public class ReservasiServiceImpl implements ReservasiService  {
         dto.setStatus(res.getStatus().name());
         dto.setWaktuReservasi(res.getWaktuReservasi());
         return dto;
+    }
+
+    @Override
+    public ReservasiResponse uploadBuktiPembayaran(UUID reservasiId, MultipartFile file) {
+        Reservasi reservasi = reservasiRepository.findById(reservasiId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reservasi tidak ditemukan"));
+
+        LocalDateTime now = LocalDateTime.now();
+        long hoursBetween = ChronoUnit.HOURS.between(reservasi.getWaktuReservasi(), now);
+
+        if (hoursBetween >= 2) {
+            // Jika > 2 jam: Ubah seat ke AVAIL, hapus reservasi, return 410
+            Gantangan gantangan = reservasi.getGantangan();
+            gantangan.setStatus(GantanganStatus.AVAILABLE);
+            gantangan.setPeserta(null);
+            gantangan.setBookedAt(null);
+            gantanganRepository.save(gantangan);
+
+            reservasiRepository.delete(reservasi);
+            throw new ResponseStatusException(HttpStatus.GONE, "Waktu pembayaran telah habis. Data reservasi dihapus.");
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || (!contentType.equals("image/jpeg") && !contentType.equals("image/png") && !contentType.equals("application/pdf"))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Format file harus JPG, PNG, atau PDF");
+        }
+
+        // Cek ukuran file max 2MB di backend sebagai pengaman tambahan
+        if (file.getSize() > 2 * 1024 * 1024) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ukuran file maksimal 2MB");
+        }
+
+try {
+            // 1. Tentukan folder penyimpanan (akan otomatis terbuat di folder project Spring Boot)
+            String uploadDir = "uploads/";
+            Path uploadPath = Paths.get(uploadDir);
+            
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+
+            String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename().replaceAll("\\s+", "_");
+            Path filePath = uploadPath.resolve(fileName);
+            
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+                        String fileUrl = "http://localhost:8080/uploads/" + fileName;
+            reservasi.setUrlBuktiPembayaran(fileUrl);
+
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Gagal menyimpan file gambar");
+        }
+        
+        reservasi.setStatus(StatusReservasi.MENUNGGU_KONFIRMASI);
+        return mapToResponse(reservasiRepository.save(reservasi));
     }
 }

@@ -10,11 +10,13 @@ import com.propinsi.backend.pendaftaran_lomba.service.ReservasiServiceImpl;
 import com.propinsi.backend.restdto.response.BaseResponse;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 // import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
@@ -50,5 +52,14 @@ public class ReservasiController {
     @PatchMapping("/verify/{id}")
     public ResponseEntity<ReservasiResponse> verify(@PathVariable UUID id, @RequestBody VerifyRequest request) {
         return ResponseEntity.ok(reservasiService.verifyPembayaran(id, request));
+    }
+
+    @PostMapping(value = "/upload-bukti", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> uploadBukti(
+            @RequestParam("reservasiId") UUID reservasiId,
+            @RequestParam("file") MultipartFile file) {
+        
+        ReservasiResponse response = reservasiService.uploadBuktiPembayaran(reservasiId, file);
+        return ResponseEntity.ok().body(response);
     }
 }

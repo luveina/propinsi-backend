@@ -40,4 +40,7 @@ public class Reservasi {
 
     @Enumerated(EnumType.STRING)
     private StatusReservasi status = StatusReservasi.BOOKED;
+
+    @Column(nullable = false, columnDefinition = "integer default 0")
+    private Integer rejectionCount = 0;
 }
