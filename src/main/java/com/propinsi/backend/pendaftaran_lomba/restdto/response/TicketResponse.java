@@ -3,6 +3,7 @@ package com.propinsi.backend.pendaftaran_lomba.restdto.response;
 import lombok.Builder;
 import lombok.Data;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Data
@@ -42,6 +43,10 @@ public class TicketResponse {
      * false → reservasi expired (2x ditolak), harus reservasi ulang
      */
     private Boolean canReupload;
+
+    // Dibutuhkan halaman upload agar bisa render nominal dan countdown yang konsisten.
+    private Double nominal;
+    private LocalDateTime waktuReservasi;
 
     // Hanya diisi jika status = "Paid"
     private Integer blok;

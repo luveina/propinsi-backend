@@ -46,8 +46,8 @@ public class TicketServiceImpl implements TicketService {
         // keterangan_tolak hanya untuk status Invalid
         String keteranganTolak = isInvalid ? reservasi.getKeteranganTolak() : null;
 
-        // Gantangan tidak punya field blok — hanya nomorGantangan
-        Integer nomorGantangan = isPaid && reservasi.getGantangan() != null
+        // Nomor gantangan dibutuhkan juga untuk flow upload dari My Tickets.
+        Integer nomorGantangan = reservasi.getGantangan() != null
                 ? reservasi.getGantangan().getNomorGantangan()
                 : null;
 
@@ -75,6 +75,8 @@ public class TicketServiceImpl implements TicketService {
                 .status(mapStatus(reservasi.getStatus()))
                 .keteranganTolak(keteranganTolak)
                 .canReupload(canReupload)
+                .nominal(reservasi.getLomba().getHargaTiket())
+                .waktuReservasi(reservasi.getWaktuReservasi())
                 .blok(blok)        
                 .nomorGantangan(nomorGantangan)
                 .build();
