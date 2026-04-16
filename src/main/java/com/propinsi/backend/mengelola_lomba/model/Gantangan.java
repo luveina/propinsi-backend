@@ -3,6 +3,7 @@ package com.propinsi.backend.mengelola_lomba.model;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -22,15 +23,15 @@ public class Gantangan {
     @Min(1) @Max(24) //belum disesuaikan nomornya dgn yg ada di lapangan
     private Integer nomorGantangan;
 
-    // @Enumerated(EnumType.STRING)
-    // private StatusGantangan status = StatusGantangan.AVAILABLE;
+    @NotNull
+    private Integer blok;
+
+    @Enumerated(EnumType.STRING)
+    private GantanganStatus status = GantanganStatus.AVAILABLE;
 
     private Boolean isAvailable = true;
 
     private LocalDateTime bookedAt;
-
-    @Enumerated(EnumType.STRING)
-    private GantanganStatus status = GantanganStatus.ACTIVE;
 
     @Min(0) @Max(3)
     private Integer warningCount = 0;

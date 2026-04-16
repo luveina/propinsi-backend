@@ -3,7 +3,6 @@ package com.propinsi.backend.pendaftaran_lomba.model;
 import com.propinsi.backend.mengelola_lomba.model.Gantangan;
 import com.propinsi.backend.mengelola_lomba.model.Lomba;
 import com.propinsi.backend.model.User;
-import com.propinsi.backend.pendaftaran_lomba.model.StatusReservasi;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -15,6 +14,7 @@ import java.util.UUID;
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 public class Reservasi {
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(updatable = false, nullable = false, columnDefinition = "UUID")
@@ -33,14 +33,17 @@ public class Reservasi {
     private Gantangan gantangan;
 
     private LocalDateTime waktuReservasi;
-    
+
     private Double nominal;
 
-    private String urlBuktiPembayaran; // URL foto/gambar bukti
+    private String urlBuktiPembayaran;
 
     @Enumerated(EnumType.STRING)
     private StatusReservasi status = StatusReservasi.BOOKED;
 
-    @Column(nullable = false, columnDefinition = "integer default 0")
+    @Column(columnDefinition = "TEXT")
+    private String keteranganTolak;
+
+    @Column(nullable = false)
     private Integer rejectionCount = 0;
 }

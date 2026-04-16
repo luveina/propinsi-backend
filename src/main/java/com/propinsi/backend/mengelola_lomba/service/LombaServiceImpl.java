@@ -67,6 +67,7 @@ public class LombaServiceImpl implements LombaService {
         for (int i = 1; i <= 24; i++) {
             Gantangan gantangan = new Gantangan();
             gantangan.setNomorGantangan(i);
+            gantangan.setBlok(((i - 1) / 6) + 1);
             gantangan.setStatus(GantanganStatus.AVAILABLE); 
             gantangan.setLomba(savedLomba);
             listGantangan.add(gantangan);
