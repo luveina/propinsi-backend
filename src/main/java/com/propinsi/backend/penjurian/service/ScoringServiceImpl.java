@@ -189,8 +189,6 @@ public class ScoringServiceImpl implements ScoringService {
         }
 
         gantangan.setStatus(GantanganStatus.DISQUALIFIED);
-        int currentWarning = gantangan.getWarningCount() == null ? 0 : gantangan.getWarningCount();
-        gantangan.setWarningCount(Math.max(currentWarning, 1));
         
         removeVotesForGantangan(gantangan);
 
@@ -284,7 +282,6 @@ public class ScoringServiceImpl implements ScoringService {
     }
 
     private boolean isBooked(Gantangan g) {
-        if (g.getPeserta() != null) return true;
-        return g.getStatus() == GantanganStatus.BOOKED || g.getStatus() == GantanganStatus.ACTIVE || g.getStatus() == GantanganStatus.DISQUALIFIED;
+        return g.getStatus() == GantanganStatus.ACTIVE || g.getStatus() == GantanganStatus.DISQUALIFIED;
     }
 }

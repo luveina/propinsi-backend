@@ -113,6 +113,7 @@ public class ReservasiServiceImpl implements ReservasiService  {
             // Jadikan seat permanen terisi sesuai Acceptance Criteria
             var gantangan = reservasi.getGantangan();
             gantangan.setIsAvailable(false);
+            gantangan.setStatus(GantanganStatus.ACTIVE);
             gantangan.setPeserta(reservasi.getPeserta());
             gantanganRepository.save(gantangan);
             

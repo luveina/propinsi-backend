@@ -7,6 +7,6 @@ public enum GantanganStatus {
     AVAILABLE;
 
     public GantanganStatus normalized() {
-        return this == DISQUALIFIED ? DISQUALIFIED : ACTIVE;
+        return this; // Tidak memaksakan semuanya menjadi ACTIVE lagi
     }
 }
