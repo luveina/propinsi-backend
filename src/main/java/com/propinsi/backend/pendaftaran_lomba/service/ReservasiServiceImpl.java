@@ -63,7 +63,7 @@ public class ReservasiServiceImpl implements ReservasiService  {
                 .collect(Collectors.toList());
     }
 
-    @Override
+@Override
     public BookingResponse bookSeat(BookingRequest request, String username) {
         User peserta = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User tidak ditemukan"));
