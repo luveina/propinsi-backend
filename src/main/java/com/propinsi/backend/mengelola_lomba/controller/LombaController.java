@@ -42,12 +42,13 @@ public class LombaController {
             @RequestParam(required = false) String jenisBurung,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String sortBy,
-            @RequestParam(required = false) String sortDir) {
+            @RequestParam(required = false) String sortDir,
+            @RequestParam(required = false) String nama) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         boolean includeAll = auth != null && auth.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN")
                             || a.getAuthority().equals("ROLE_KOORDINATOR_LOMBA"));
-        return ResponseEntity.ok(lombaService.getAllLomba(jenisBurung, status, sortBy, sortDir, includeAll));
+        return ResponseEntity.ok(lombaService.getAllLomba(jenisBurung, status, sortBy, sortDir, nama, includeAll));
     }
 
     @PreAuthorize("hasAnyRole('KOORDINATOR_LOMBA', 'ADMIN')")
