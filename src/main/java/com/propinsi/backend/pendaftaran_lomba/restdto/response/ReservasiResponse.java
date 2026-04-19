@@ -14,4 +14,6 @@ public class ReservasiResponse {
     private String urlBukti;
     private String status;
     private LocalDateTime waktuReservasi;
+    private String keteranganTolak;
+    private Integer rejectionCount;
 }

@@ -116,9 +116,32 @@ public class ReservasiServiceImpl implements ReservasiService  {
             gantangan.setPeserta(reservasi.getPeserta());
             gantanganRepository.save(gantangan);
             
-        } else if ("REJECTED".equalsIgnoreCase(request.getStatus())) {
-            reservasi.setStatus(StatusReservasi.REJECTED);
-            // Lepas seat kembali ke Available (Bisa kerjakan nanti sesuai arahanmu)
+        } else if ("Invalid".equalsIgnoreCase(request.getStatus()) || "REJECTED".equalsIgnoreCase(request.getStatus())) {
+            if (request.getKomentar() == null || request.getKomentar().trim().isEmpty()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Komentar wajib diisi saat menolak pembayaran.");
+            }
+            
+            reservasi.setRejectionCount(reservasi.getRejectionCount() + 1);
+            reservasi.setKeteranganTolak(request.getKomentar());
+            
+            if (reservasi.getRejectionCount() >= 2) {
+                reservasi.setStatus(StatusReservasi.REJECTED);
+                // Lepas seat kembali ke Available
+                var gantangan = reservasi.getGantangan();
+                gantangan.setIsAvailable(true);
+                gantangan.setStatus(GantanganStatus.AVAILABLE);
+                gantangan.setPeserta(null);
+                gantangan.setBookedAt(null);
+                gantanganRepository.save(gantangan);
+            } else {
+                reservasi.setStatus(StatusReservasi.REJECTED);
+                // Beri waktu 2 jam baru sejak ditolak agar peserta bisa upload ulang
+                reservasi.setWaktuReservasi(LocalDateTime.now());
+                
+                var gantangan = reservasi.getGantangan();
+                gantangan.setBookedAt(LocalDateTime.now());
+                gantanganRepository.save(gantangan);
+            }
         }
 
         return mapToResponse(reservasiRepository.save(reservasi));
@@ -137,6 +160,8 @@ public class ReservasiServiceImpl implements ReservasiService  {
         dto.setUrlBukti(res.getUrlBuktiPembayaran());
         dto.setStatus(res.getStatus().name());
         dto.setWaktuReservasi(res.getWaktuReservasi());
+        dto.setKeteranganTolak(res.getKeteranganTolak());
+        dto.setRejectionCount(res.getRejectionCount());
         return dto;
     }
 
@@ -208,11 +233,9 @@ try {
             long hoursBetween = ChronoUnit.HOURS.between(reservasi.getWaktuReservasi(), now);
 
             if (hoursBetween >= 2) {
-            // long minutesBetween = ChronoUnit.MINUTES.between(reservasi.getWaktuReservasi(), now);
-
-            // if (minutesBetween >= 2) {
                 Gantangan gantangan = reservasi.getGantangan();
                 if (gantangan != null) {
+                    gantangan.setIsAvailable(true);
                     gantangan.setStatus(GantanganStatus.AVAILABLE);
                     gantangan.setPeserta(null);
                     gantangan.setBookedAt(null);
@@ -222,7 +245,31 @@ try {
                 reservasi.setStatus(StatusReservasi.EXPIRED);
                 reservasiRepository.save(reservasi);
 
-                System.out.println("[SCHEDULER] Reservasi ID: " + reservasi.getId() + " otomatis kedaluwarsa.");
+                System.out.println("[SCHEDULER] Reservasi ID: " + reservasi.getId() + " otomatis kedaluwarsa (Booked > 2 jam).");
+            }
+        }
+        
+        List<Reservasi> rejectedReservations = reservasiRepository.findByStatus(StatusReservasi.REJECTED);
+
+        for (Reservasi reservasi : rejectedReservations) {
+            if (reservasi.getRejectionCount() != null && reservasi.getRejectionCount() == 1) {
+                long daysBetween = ChronoUnit.DAYS.between(reservasi.getWaktuReservasi(), now);
+
+                if (daysBetween >= 1) { 
+                    Gantangan gantangan = reservasi.getGantangan();
+                    if (gantangan != null) {
+                        gantangan.setIsAvailable(true);
+                        gantangan.setStatus(GantanganStatus.AVAILABLE);
+                        gantangan.setPeserta(null);
+                        gantangan.setBookedAt(null);
+                        gantanganRepository.save(gantangan);
+                    }
+
+                    reservasi.setStatus(StatusReservasi.EXPIRED);
+                    reservasiRepository.save(reservasi);
+
+                    System.out.println("[SCHEDULER] Reservasi ID: " + reservasi.getId() + " otomatis EXPIRED (Rejected > 1 Hari).");
+                }
             }
         }
     }

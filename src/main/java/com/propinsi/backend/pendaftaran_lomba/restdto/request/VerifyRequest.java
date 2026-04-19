@@ -3,5 +3,6 @@ import lombok.Data;
 
 @Data
 public class VerifyRequest {
-    private String status; // "PAID" atau "REJECTED"
+    private String status; // "PAID" atau "Invalid"
+    private String komentar;
 }

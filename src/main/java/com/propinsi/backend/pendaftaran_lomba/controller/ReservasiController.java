@@ -42,13 +42,13 @@ public class ReservasiController {
         return ResponseEntity.ok(BaseResponse.success(response, "Booking berhasil, silakan lanjut ke pembayaran"));
     }
 
-    // @PreAuthorize("hasAuthority('KOORDINATOR_PENDAFTARAN')")
+    @PreAuthorize("hasRole('KOORDINATOR_PENDAFTARAN')")
     @GetMapping("/all")
     public ResponseEntity<List<ReservasiResponse>> getAll() {
         return ResponseEntity.ok(reservasiService.getAllReservasi());
     }
 
-    // @PreAuthorize("hasAuthority('KOORDINATOR_PENDAFTARAN')")
+    @PreAuthorize("hasRole('KOORDINATOR_PENDAFTARAN')")
     @PatchMapping("/verify/{id}")
     public ResponseEntity<ReservasiResponse> verify(@PathVariable UUID id, @RequestBody VerifyRequest request) {
         return ResponseEntity.ok(reservasiService.verifyPembayaran(id, request));
