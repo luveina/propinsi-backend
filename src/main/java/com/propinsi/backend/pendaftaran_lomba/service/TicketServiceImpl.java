@@ -91,7 +91,7 @@ public class TicketServiceImpl implements TicketService {
             case BOOKED              -> "Unpaid";
             case MENUNGGU_KONFIRMASI -> "Menunggu Konfirmasi";
             case REJECTED            -> "Invalid";
-            case EXPIRED             -> "Expired";  
+            case EXPIRED             -> "Expired";
             default                  -> "Unpaid";
         };
     }

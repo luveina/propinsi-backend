@@ -23,6 +23,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -36,6 +38,7 @@ import java.util.stream.Collectors;
 
 @Service
 @Transactional
+@EnableScheduling
 public class ReservasiServiceImpl implements ReservasiService  {
     
     @Autowired
@@ -142,20 +145,24 @@ public class ReservasiServiceImpl implements ReservasiService  {
         Reservasi reservasi = reservasiRepository.findById(reservasiId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reservasi tidak ditemukan"));
 
-        LocalDateTime now = LocalDateTime.now();
-        long hoursBetween = ChronoUnit.HOURS.between(reservasi.getWaktuReservasi(), now);
+        // LocalDateTime now = LocalDateTime.now();
+        // long hoursBetween = ChronoUnit.HOURS.between(reservasi.getWaktuReservasi(), now);
 
-        if (hoursBetween >= 2) {
-            // Jika > 2 jam: Ubah seat ke AVAIL, hapus reservasi, return 410
-            Gantangan gantangan = reservasi.getGantangan();
-            gantangan.setStatus(GantanganStatus.AVAILABLE);
-            gantangan.setPeserta(null);
-            gantangan.setBookedAt(null);
-            gantanganRepository.save(gantangan);
+        // if (hoursBetween >= 2) {
+        //     // Jika > 2 jam: Ubah seat ke AVAIL, hapus reservasi, return 410
+        //     Gantangan gantangan = reservasi.getGantangan();
+        //     gantangan.setStatus(GantanganStatus.AVAILABLE);
+        //     gantangan.setPeserta(null);
+        //     gantangan.setBookedAt(null);
+        //     gantanganRepository.save(gantangan);
 
-            reservasiRepository.delete(reservasi);
-            throw new ResponseStatusException(HttpStatus.GONE, "Waktu pembayaran telah habis. Data reservasi dihapus.");
-        }
+        //     reservasiRepository.delete(reservasi);
+        //     throw new ResponseStatusException(HttpStatus.GONE, "Waktu pembayaran telah habis. Data reservasi dihapus.");
+        // }
+
+        if (reservasi.getStatus() == StatusReservasi.EXPIRED) {
+        throw new ResponseStatusException(HttpStatus.GONE, "Waktu pembayaran telah habis. Silakan daftar ulang.");
+    }
 
         String contentType = file.getContentType();
         if (contentType == null || (!contentType.equals("image/jpeg") && !contentType.equals("image/png") && !contentType.equals("application/pdf"))) {
@@ -168,7 +175,6 @@ public class ReservasiServiceImpl implements ReservasiService  {
         }
 
 try {
-            // 1. Tentukan folder penyimpanan (akan otomatis terbuat di folder project Spring Boot)
             String uploadDir = "uploads/";
             Path uploadPath = Paths.get(uploadDir);
             
@@ -189,5 +195,35 @@ try {
         
         reservasi.setStatus(StatusReservasi.MENUNGGU_KONFIRMASI);
         return mapToResponse(reservasiRepository.save(reservasi));
+    }
+
+    @Scheduled(fixedRate = 60000)
+    @Transactional
+    public void autoCancelExpiredReservasi() {
+        LocalDateTime now = LocalDateTime.now();
+        
+        List<Reservasi> activeReservations = reservasiRepository.findByStatus(StatusReservasi.BOOKED);
+
+        for (Reservasi reservasi : activeReservations) {
+            long hoursBetween = ChronoUnit.HOURS.between(reservasi.getWaktuReservasi(), now);
+
+            if (hoursBetween >= 2) {
+            // long minutesBetween = ChronoUnit.MINUTES.between(reservasi.getWaktuReservasi(), now);
+
+            // if (minutesBetween >= 2) {
+                Gantangan gantangan = reservasi.getGantangan();
+                if (gantangan != null) {
+                    gantangan.setStatus(GantanganStatus.AVAILABLE);
+                    gantangan.setPeserta(null);
+                    gantangan.setBookedAt(null);
+                    gantanganRepository.save(gantangan);
+                }
+
+                reservasi.setStatus(StatusReservasi.EXPIRED);
+                reservasiRepository.save(reservasi);
+
+                System.out.println("[SCHEDULER] Reservasi ID: " + reservasi.getId() + " otomatis kedaluwarsa.");
+            }
+        }
     }
 }
