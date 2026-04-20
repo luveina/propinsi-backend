@@ -177,6 +177,82 @@ public class LombaServiceImpl implements LombaService {
     }
 
     @Override
+    public List<LombaResponse> getLombaByJuri(Long juriId, String jenisBurung, String status, String sortBy, String sortDir, String nama) {
+        User juri = userRepository.findById(juriId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User tidak ditemukan"));
+        
+        // Parse filters
+        JenisBurung jenisBurungEnum = null;
+        if (jenisBurung != null && !jenisBurung.isEmpty()) {
+            try { jenisBurungEnum = JenisBurung.valueOf(jenisBurung); } catch (IllegalArgumentException ignored) {}
+        }
+
+        StatusLomba statusEnum = null;
+        if (status != null && !status.isEmpty()) {
+            try { statusEnum = StatusLomba.valueOf(status); } catch (IllegalArgumentException ignored) {}
+        }
+
+        // Map sort parameters
+        String finalSortBy = sortBy;
+        String finalSortDir = sortDir;
+        if (sortBy != null && !sortBy.isEmpty()) {
+            if ("latest".equalsIgnoreCase(sortBy)) {
+                finalSortBy = "waktuTanggal";
+                finalSortDir = "desc";
+            } else if ("oldest".equalsIgnoreCase(sortBy)) {
+                finalSortBy = "waktuTanggal";
+                finalSortDir = "asc";
+            }
+        }
+
+        final JenisBurung finalJenis = jenisBurungEnum;
+        final StatusLomba finalStatus = statusEnum;
+        final String finalNama = nama;
+
+        // Get all lombas where juri is assigned (excluding deleted lombas)
+        List<Lomba> lombaList = lombaRepository.findAll()
+                .stream()
+                .filter(lomba -> lomba.getListJuri().contains(juri))  // Filter: juri harus di-assign ke lomba
+                .filter(l -> finalJenis == null || l.getJenisBurung() == finalJenis)
+                .filter(l -> finalStatus == null || l.getStatus() == finalStatus)
+                .filter(l -> finalNama == null || l.getNamaLomba().toLowerCase().contains(finalNama.toLowerCase()))
+                .collect(Collectors.toList());
+
+        // Apply sorting
+        if (finalSortBy != null && !finalSortBy.isEmpty()) {
+            final boolean desc = "desc".equalsIgnoreCase(finalSortDir);
+            final String sortField = finalSortBy;
+            lombaList = lombaList.stream().sorted((a, b) -> {
+                try {
+                    java.lang.reflect.Method getter = Lomba.class.getMethod(
+                            "get" + sortField.substring(0, 1).toUpperCase() + sortField.substring(1));
+                    Object valA = getter.invoke(a);
+                    Object valB = getter.invoke(b);
+                    
+                    // Handle null values
+                    if (valA == null && valB == null) return 0;
+                    if (valA == null) return desc ? 1 : -1;
+                    if (valB == null) return desc ? -1 : 1;
+                    
+                    // Compare non-null values
+                    if (valA instanceof Comparable && valB instanceof Comparable) {
+                        int cmp = ((Comparable) valA).compareTo(valB);
+                        return desc ? -cmp : cmp;
+                    }
+                    return 0;
+                } catch (Exception e) {
+                    System.err.println("Sorting error for field " + sortField + ": " + e.getMessage());
+                    return 0;
+                }
+            }).collect(Collectors.toList());
+        }
+
+        return lombaList.stream()
+                .map(this::mapToLombaResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public LombaResponse updateLomba(UUID id, LombaRequest request) {
         Lomba lomba = lombaRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lomba tidak ditemukan"));
