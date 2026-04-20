@@ -11,7 +11,7 @@ public class BackendApplication {
 		SpringApplication.run(BackendApplication.class, args);
 	}
 
-	// make sure there is at least one admin (superadmin) in the system
+	// make sure there is at least one admin (superadmin) in the systems
 	@Bean
 	public org.springframework.boot.CommandLineRunner dataInitializer(
 	        com.propinsi.backend.repository.UserRepository userRepo,
