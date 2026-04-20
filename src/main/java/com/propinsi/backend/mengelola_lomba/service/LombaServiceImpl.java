@@ -87,11 +87,16 @@ public class LombaServiceImpl implements LombaService {
 
     @Override
     public List<LombaResponse> getAllLomba() {
-        return getAllLomba(null, null, null, null, false);
+        return getAllLomba(null, null, null, null, null, false);
     }
 
     @Override
     public List<LombaResponse> getAllLomba(String jenisBurung, String status, String sortBy, String sortDir, boolean includeAll) {
+        return getAllLomba(jenisBurung, status, sortBy, sortDir, null, includeAll);
+    }
+
+    @Override
+    public List<LombaResponse> getAllLomba(String jenisBurung, String status, String sortBy, String sortDir, String nama, boolean includeAll) {
         JenisBurung jenisBurungEnum = null;
         if (jenisBurung != null && !jenisBurung.isEmpty()) {
             try { jenisBurungEnum = JenisBurung.valueOf(jenisBurung); } catch (IllegalArgumentException ignored) {}
@@ -102,8 +107,22 @@ public class LombaServiceImpl implements LombaService {
             try { statusEnum = StatusLomba.valueOf(status); } catch (IllegalArgumentException ignored) {}
         }
 
+        // Map sort parameters
+        String finalSortBy = sortBy;
+        String finalSortDir = sortDir;
+        if (sortBy != null && !sortBy.isEmpty()) {
+            if ("latest".equalsIgnoreCase(sortBy)) {
+                finalSortBy = "waktuTanggal";
+                finalSortDir = "desc";
+            } else if ("oldest".equalsIgnoreCase(sortBy)) {
+                finalSortBy = "waktuTanggal";
+                finalSortDir = "asc";
+            }
+        }
+
         final JenisBurung finalJenis = jenisBurungEnum;
         final StatusLomba finalStatus = statusEnum;
+        final String finalNama = nama;
 
         List<Lomba> lombaList;
 
@@ -114,31 +133,119 @@ public class LombaServiceImpl implements LombaService {
             lombaList = lombaList.stream()
                     .filter(l -> finalJenis == null || l.getJenisBurung() == finalJenis)
                     .filter(l -> finalStatus == null || l.getStatus() == finalStatus)
+                    .filter(l -> finalNama == null || l.getNamaLomba().toLowerCase().contains(finalNama.toLowerCase()))
                     .collect(Collectors.toList());
         } else {
             // Peserta & lainnya: status DIBATALKAN otomatis dikecualikan via @Where
             Sort sort = Sort.unsorted();
-            if (sortBy != null && !sortBy.isEmpty()) {
-                Sort.Direction dir = "desc".equalsIgnoreCase(sortDir) ? Sort.Direction.DESC : Sort.Direction.ASC;
-                sort = Sort.by(dir, sortBy);
+            if (finalSortBy != null && !finalSortBy.isEmpty()) {
+                Sort.Direction dir = "desc".equalsIgnoreCase(finalSortDir) ? Sort.Direction.DESC : Sort.Direction.ASC;
+                sort = Sort.by(dir, finalSortBy);
             }
-            lombaList = lombaRepository.findAll(LombaSpecification.filter(finalJenis, finalStatus, true), sort);
+            lombaList = lombaRepository.findAll(LombaSpecification.filter(finalJenis, finalStatus, finalNama, true), sort);
         }
 
         // Sorting untuk includeAll path
-        if (includeAll && sortBy != null && !sortBy.isEmpty()) {
-            final boolean desc = "desc".equalsIgnoreCase(sortDir);
+        if (includeAll && finalSortBy != null && !finalSortBy.isEmpty()) {
+            final boolean desc = "desc".equalsIgnoreCase(finalSortDir);
+            final String sortField = finalSortBy;
             lombaList = lombaList.stream().sorted((a, b) -> {
                 try {
                     java.lang.reflect.Method getter = Lomba.class.getMethod(
-                            "get" + sortBy.substring(0, 1).toUpperCase() + sortBy.substring(1));
-                    Comparable valA = (Comparable) getter.invoke(a);
-                    Comparable valB = (Comparable) getter.invoke(b);
+                            "get" + sortField.substring(0, 1).toUpperCase() + sortField.substring(1));
+                    Object valA = getter.invoke(a);
+                    Object valB = getter.invoke(b);
+                    
+                    // Handle null values
+                    if (valA == null && valB == null) return 0;
                     if (valA == null) return desc ? 1 : -1;
                     if (valB == null) return desc ? -1 : 1;
-                    int cmp = valA.compareTo(valB);
-                    return desc ? -cmp : cmp;
+                    
+                    // Compare non-null values
+                    if (valA instanceof Comparable && valB instanceof Comparable) {
+                        int cmp = ((Comparable) valA).compareTo(valB);
+                        return desc ? -cmp : cmp;
+                    }
+                    return 0;
                 } catch (Exception e) {
+                    // Fallback: sort by id if something goes wrong
+                    System.err.println("Sorting error for field " + sortField + ": " + e.getMessage());
+                    return 0;
+                }
+            }).collect(Collectors.toList());
+        }
+
+        return lombaList.stream()
+                .map(this::mapToLombaResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<LombaResponse> getLombaByJuri(Long juriId, String jenisBurung, String status, String sortBy, String sortDir, String nama) {
+        User juri = userRepository.findById(juriId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User tidak ditemukan"));
+        
+        // Parse filters
+        JenisBurung jenisBurungEnum = null;
+        if (jenisBurung != null && !jenisBurung.isEmpty()) {
+            try { jenisBurungEnum = JenisBurung.valueOf(jenisBurung); } catch (IllegalArgumentException ignored) {}
+        }
+
+        StatusLomba statusEnum = null;
+        if (status != null && !status.isEmpty()) {
+            try { statusEnum = StatusLomba.valueOf(status); } catch (IllegalArgumentException ignored) {}
+        }
+
+        // Map sort parameters
+        String finalSortBy = sortBy;
+        String finalSortDir = sortDir;
+        if (sortBy != null && !sortBy.isEmpty()) {
+            if ("latest".equalsIgnoreCase(sortBy)) {
+                finalSortBy = "waktuTanggal";
+                finalSortDir = "desc";
+            } else if ("oldest".equalsIgnoreCase(sortBy)) {
+                finalSortBy = "waktuTanggal";
+                finalSortDir = "asc";
+            }
+        }
+
+        final JenisBurung finalJenis = jenisBurungEnum;
+        final StatusLomba finalStatus = statusEnum;
+        final String finalNama = nama;
+
+        // Get all lombas where juri is assigned (excluding deleted lombas)
+        List<Lomba> lombaList = lombaRepository.findAll()
+                .stream()
+                .filter(lomba -> lomba.getListJuri().contains(juri))  // Filter: juri harus di-assign ke lomba
+                .filter(l -> finalJenis == null || l.getJenisBurung() == finalJenis)
+                .filter(l -> finalStatus == null || l.getStatus() == finalStatus)
+                .filter(l -> finalNama == null || l.getNamaLomba().toLowerCase().contains(finalNama.toLowerCase()))
+                .collect(Collectors.toList());
+
+        // Apply sorting
+        if (finalSortBy != null && !finalSortBy.isEmpty()) {
+            final boolean desc = "desc".equalsIgnoreCase(finalSortDir);
+            final String sortField = finalSortBy;
+            lombaList = lombaList.stream().sorted((a, b) -> {
+                try {
+                    java.lang.reflect.Method getter = Lomba.class.getMethod(
+                            "get" + sortField.substring(0, 1).toUpperCase() + sortField.substring(1));
+                    Object valA = getter.invoke(a);
+                    Object valB = getter.invoke(b);
+                    
+                    // Handle null values
+                    if (valA == null && valB == null) return 0;
+                    if (valA == null) return desc ? 1 : -1;
+                    if (valB == null) return desc ? -1 : 1;
+                    
+                    // Compare non-null values
+                    if (valA instanceof Comparable && valB instanceof Comparable) {
+                        int cmp = ((Comparable) valA).compareTo(valB);
+                        return desc ? -cmp : cmp;
+                    }
+                    return 0;
+                } catch (Exception e) {
+                    System.err.println("Sorting error for field " + sortField + ": " + e.getMessage());
                     return 0;
                 }
             }).collect(Collectors.toList());
@@ -172,8 +279,14 @@ public class LombaServiceImpl implements LombaService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Gagal update karena sudah ada peserta yang mendaftar di lomba ini");
         }
 
-        if (request.getJumlahJuri() < lomba.getListJuri().size()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Jumlah juri tidak boleh lebih sedikit dari juri yang sudah di-assign");
+        // Only check juri count if user is reducing the capacity
+        if (request.getJumlahJuri() < lomba.getJumlahJuri()) {
+            // User mengurangi kapasitas juri, cek jika sudah ada juri yang di-assign
+            if (request.getJumlahJuri() < lomba.getListJuri().size()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                    "Tidak dapat mengurangi kapasitas juri ke " + request.getJumlahJuri() + 
+                    " karena sudah ada " + lomba.getListJuri().size() + " juri yang di-assign");
+            }
         }
 
         lomba.setNamaLomba(request.getNamaLomba());
@@ -242,8 +355,11 @@ public class LombaServiceImpl implements LombaService {
 
     @Override
     public List<UserSummaryResponse> getAvailableJuri() {
+        // Filter: hanya juri yang AKTIF (role = JURI dan tidak deleted)
         List<User> juriList = userRepository.findAll().stream()
-            .filter(u -> u.getRole() == Role.JURI && u.isEnabled())
+            .filter(u -> u.getRole() == Role.JURI)
+                .filter(u -> u.isEnabled())
+                .filter(u -> "Active".equals(u.getStatus())) // Pastikan status ACTIVE
                 .collect(Collectors.toList());
 
         return juriList.stream()

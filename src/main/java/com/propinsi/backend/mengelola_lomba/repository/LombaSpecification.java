@@ -12,10 +12,14 @@ import java.util.List;
 public class LombaSpecification {
 
     public static Specification<Lomba> filter(JenisBurung jenisBurung, StatusLomba status) {
-        return filter(jenisBurung, status, false);
+        return filter(jenisBurung, status, null, false);
     }
 
     public static Specification<Lomba> filter(JenisBurung jenisBurung, StatusLomba status, boolean excludeDibatalkan) {
+        return filter(jenisBurung, status, null, excludeDibatalkan);
+    }
+
+    public static Specification<Lomba> filter(JenisBurung jenisBurung, StatusLomba status, String nama, boolean excludeDibatalkan) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
@@ -25,6 +29,10 @@ public class LombaSpecification {
 
             if (status != null) {
                 predicates.add(cb.equal(root.get("status"), status));
+            }
+
+            if (nama != null && !nama.isEmpty()) {
+                predicates.add(cb.like(cb.lower(root.get("namaLomba")), "%" + nama.toLowerCase() + "%"));
             }
 
             // Peserta & role lain tidak boleh melihat lomba yang dibatalkan
