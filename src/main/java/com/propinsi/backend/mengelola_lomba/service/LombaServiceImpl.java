@@ -31,6 +31,9 @@ import com.propinsi.backend.mengelola_lomba.restdto.response.UserSummaryResponse
 import com.propinsi.backend.model.Role;
 import com.propinsi.backend.model.User;
 import com.propinsi.backend.repository.UserRepository;
+import com.propinsi.backend.pendaftaran_lomba.repository.ReservasiRepository;
+import com.propinsi.backend.pendaftaran_lomba.model.StatusReservasi;
+import java.util.Arrays;
 
 @Service
 @Transactional
@@ -44,6 +47,9 @@ public class LombaServiceImpl implements LombaService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private ReservasiRepository reservasiRepository;
 
     @Override
     public LombaResponse createLomba(LombaRequest request) {
@@ -440,8 +446,11 @@ public class LombaServiceImpl implements LombaService {
     }
 
     private boolean hasRegistrants(UUID id) {
-        // TODO: Connect to PendaftaranRepository later
-        return false;
+        return reservasiRepository.existsByLombaIdAndStatusIn(id, Arrays.asList(
+            StatusReservasi.BOOKED,
+            StatusReservasi.PAID,
+            StatusReservasi.MENUNGGU_KONFIRMASI
+        ));
     }
 
     @Override

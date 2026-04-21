@@ -20,4 +20,6 @@ public interface ReservasiRepository extends JpaRepository<Reservasi, UUID> {
      */
     List<Reservasi> findByPesertaOrderByWaktuReservasiDesc(User peserta);
     List<Reservasi> findByStatus(StatusReservasi status);
+    
+    boolean existsByLombaIdAndStatusIn(UUID lombaId, List<StatusReservasi> statuses);
 }
