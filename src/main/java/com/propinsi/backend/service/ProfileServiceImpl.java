@@ -43,12 +43,17 @@ public class ProfileServiceImpl implements ProfileService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password lama Anda tidak sesuai");
         }
 
-        // 2. Validasi Konfirmasi Password Baru
+        // 2. Validasi: Password Baru TIDAK BOLEH sama dengan Password Lama (TAMBAHKAN INI)
+        if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password baru tidak boleh sama dengan password lama");
+        }
+
+        // 3. Validasi Konfirmasi Password Baru
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Konfirmasi password baru tidak cocok");
         }
 
-        // 3. Enkripsi Password Baru (AC BE point 3)
+        // 4. Enkripsi Password Baru (AC BE point 3)
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         
         // Simpan ke database
