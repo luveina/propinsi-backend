@@ -16,6 +16,8 @@ public interface LombaService {
     LombaResponse getLombaById(UUID id);
     List<LombaResponse> getAllLomba();
     List<LombaResponse> getAllLomba(String jenisBurung, String status, String sortBy, String sortDir, boolean includeAll);
+    List<LombaResponse> getAllLomba(String jenisBurung, String status, String sortBy, String sortDir, String nama, boolean includeAll);
+    List<LombaResponse> getLombaByJuri(Long juriId, String jenisBurung, String status, String sortBy, String sortDir, String nama);
     LombaResponse updateLomba(UUID id, LombaRequest request);
     LombaResponse assignJuriToLomba(UUID lombaId, AssignJuriRequest request);
     LombaResponse removeJuriFromLomba(UUID lombaId, Long juriId);
