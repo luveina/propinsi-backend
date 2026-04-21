@@ -3,7 +3,10 @@ package com.propinsi.backend.mengelola_lomba.model;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
+
+import java.time.LocalDateTime;
 import java.util.UUID;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.propinsi.backend.model.User;
@@ -20,7 +23,18 @@ public class Gantangan {
     @Min(1) @Max(24) //belum disesuaikan nomornya dgn yg ada di lapangan
     private Integer nomorGantangan;
 
+    @NotNull
+    private Integer blok;
+
+    @Enumerated(EnumType.STRING)
+    private GantanganStatus status = GantanganStatus.AVAILABLE;
+
     private Boolean isAvailable = true;
+
+    private LocalDateTime bookedAt;
+
+    @Min(0) @Max(3)
+    private Integer warningCount = 0;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "peserta_id")

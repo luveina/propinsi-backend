@@ -9,6 +9,6 @@ import java.util.UUID;
 public class GantanganResponse {
     private UUID id;
     private Integer nomorGantangan;
-    private Boolean isAvailable;
+    private String status; 
     private UserSummaryResponse peserta;
 }

@@ -45,6 +45,7 @@ public class WebSecurityConfig {
                 .requestMatchers("/api/gantangan/register").hasRole("PESERTA")
                 .requestMatchers("/api/gantangan/*/unregister").hasRole("PESERTA")
                 
+                .requestMatchers("/uploads/**").permitAll()
                 // Sisanya wajib login
                 .anyRequest().authenticated()
             );

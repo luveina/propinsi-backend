@@ -25,4 +25,5 @@ public class LombaResponse {
     private String contactPerson;
     private StatusLomba status;
     private List<GantanganResponse> listGantangan;
+    private String deskripsi;
 }
