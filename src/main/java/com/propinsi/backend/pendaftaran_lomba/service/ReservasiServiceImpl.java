@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -213,7 +214,10 @@ try {
             Path filePath = uploadPath.resolve(fileName);
             
             Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-                        String fileUrl = "http://localhost:8080/uploads/" + fileName;
+            String fileUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/uploads/")
+                    .path(fileName)
+                    .toUriString();
             reservasi.setUrlBuktiPembayaran(fileUrl);
 
         } catch (Exception e) {
