@@ -31,6 +31,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
@@ -80,14 +81,14 @@ public class ReservasiServiceImpl implements ReservasiService  {
 
         gantangan.setStatus(GantanganStatus.BOOKED);
         gantangan.setPeserta(peserta);
-        gantangan.setBookedAt(LocalDateTime.now());
+        gantangan.setBookedAt(nowUtc());
         reservasiGantanganRepository.save(gantangan);
 
         Reservasi reservasi = new Reservasi();
         reservasi.setPeserta(peserta);
         reservasi.setLomba(gantangan.getLomba());
         reservasi.setGantangan(gantangan);
-        reservasi.setWaktuReservasi(LocalDateTime.now());
+        reservasi.setWaktuReservasi(nowUtc());
         reservasi.setNominal(gantangan.getLomba().getHargaTiket()); // Set nominal dari harga tiket lomba
         reservasi.setStatus(StatusReservasi.BOOKED);
         reservasi.setRejectionCount(0);
@@ -137,10 +138,10 @@ public class ReservasiServiceImpl implements ReservasiService  {
             } else {
                 reservasi.setStatus(StatusReservasi.REJECTED);
                 // Beri waktu 2 jam baru sejak ditolak agar peserta bisa upload ulang
-                reservasi.setWaktuReservasi(LocalDateTime.now());
+                reservasi.setWaktuReservasi(nowUtc());
                 
                 var gantangan = reservasi.getGantangan();
-                gantangan.setBookedAt(LocalDateTime.now());
+                gantangan.setBookedAt(nowUtc());
                 gantanganRepository.save(gantangan);
             }
         }
@@ -226,7 +227,7 @@ try {
     @Scheduled(fixedRate = 60000)
     @Transactional
     public void autoCancelExpiredReservasi() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = nowUtc();
         
         List<Reservasi> activeReservations = reservasiRepository.findByStatus(StatusReservasi.BOOKED);
 
@@ -254,9 +255,9 @@ try {
 
         for (Reservasi reservasi : rejectedReservations) {
             if (reservasi.getRejectionCount() != null && reservasi.getRejectionCount() == 1) {
-                long daysBetween = ChronoUnit.DAYS.between(reservasi.getWaktuReservasi(), now);
+                long hoursBetween = ChronoUnit.HOURS.between(reservasi.getWaktuReservasi(), now);
 
-                if (daysBetween >= 1) { 
+                if (hoursBetween >= 24) { 
                     Gantangan gantangan = reservasi.getGantangan();
                     if (gantangan != null) {
                         gantangan.setIsAvailable(true);
@@ -269,9 +270,13 @@ try {
                     reservasi.setStatus(StatusReservasi.EXPIRED);
                     reservasiRepository.save(reservasi);
 
-                    System.out.println("[SCHEDULER] Reservasi ID: " + reservasi.getId() + " otomatis EXPIRED (Rejected > 1 Hari).");
+                    System.out.println("[SCHEDULER] Reservasi ID: " + reservasi.getId() + " otomatis EXPIRED (Rejected > 24 jam).");
                 }
             }
         }
+    }
+
+    private LocalDateTime nowUtc() {
+        return LocalDateTime.now(ZoneOffset.UTC);
     }
 }
