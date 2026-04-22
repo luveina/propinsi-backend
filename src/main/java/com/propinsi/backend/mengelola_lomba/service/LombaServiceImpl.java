@@ -38,6 +38,11 @@ import java.util.Arrays;
 @Service
 @Transactional
 public class LombaServiceImpl implements LombaService {
+    private static final List<StatusReservasi> ACTIVE_RESERVATION_STATUSES = Arrays.asList(
+        StatusReservasi.BOOKED,
+        StatusReservasi.MENUNGGU_KONFIRMASI,
+        StatusReservasi.PAID
+    );
 
     @Autowired
     private LombaRepository lombaRepository;
@@ -279,9 +284,8 @@ public class LombaServiceImpl implements LombaService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Gagal update karena sudah hari lomba");
         }
 
-        boolean hasPeserta = lomba.getListGantangan().stream()
-            .anyMatch(g -> g.getPeserta() != null || g.getStatus() != GantanganStatus.AVAILABLE);
-        if (hasPeserta) {
+        // Cek apakah ada peserta yang sudah registrasi
+        if (hasRegistrants(id)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Gagal update karena sudah ada peserta yang mendaftar di lomba ini");
         }
 
@@ -316,6 +320,8 @@ public class LombaServiceImpl implements LombaService {
         Lomba lomba = lombaRepository.findById(lombaId)
                 .orElseThrow(() -> new RuntimeException("Lomba tidak ditemukan"));
 
+        validateJuriCanBeEdited(lomba);
+
         if (request.getJuriIds().size() > lomba.getJumlahJuri()) {
             throw new RuntimeException("Jumlah juri melebihi kapasitas lomba (max: " + lomba.getJumlahJuri() + ")");
         }
@@ -346,6 +352,8 @@ public class LombaServiceImpl implements LombaService {
     public LombaResponse removeJuriFromLomba(UUID lombaId, Long juriId) {
         Lomba lomba = lombaRepository.findById(lombaId)
                 .orElseThrow(() -> new RuntimeException("Lomba tidak ditemukan"));
+
+        validateJuriCanBeEdited(lomba);
 
         User juri = userRepository.findById(juriId)
                 .orElseThrow(() -> new RuntimeException("Juri tidak ditemukan"));
@@ -451,11 +459,16 @@ public class LombaServiceImpl implements LombaService {
     }
 
     private boolean hasRegistrants(UUID id) {
-        return reservasiRepository.existsByLombaIdAndStatusIn(id, Arrays.asList(
-            StatusReservasi.BOOKED,
-            StatusReservasi.PAID,
-            StatusReservasi.MENUNGGU_KONFIRMASI
-        ));
+        return reservasiRepository.existsByLombaIdAndStatusIn(id, ACTIVE_RESERVATION_STATUSES);
+    }
+
+    private void validateJuriCanBeEdited(Lomba lomba) {
+        if (lomba.getStatus() != StatusLomba.BELUM_DIMULAI) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Juri hanya dapat diubah sebelum lomba dinyatakan berlangsung"
+            );
+        }
     }
 
     @Override
@@ -505,7 +518,15 @@ public class LombaServiceImpl implements LombaService {
 
         Role userRole = currentUser.getRole();
 
-        builder.isEditable(userRole == Role.KOORDINATOR_LOMBA && lomba.getStatus() == StatusLomba.BELUM_DIMULAI && isAtMostHMinus1);
+        boolean hasActiveReservations = reservasiRepository.existsByLombaIdAndStatusIn(id, ACTIVE_RESERVATION_STATUSES);
+
+        // isEditable: dapat klik Edit button selama BELUM_DIMULAI (bisa edit juri meskipun ada reservasi)
+        builder.isEditable(userRole == Role.KOORDINATOR_LOMBA && lomba.getStatus() == StatusLomba.BELUM_DIMULAI);
+
+        // canDeleteLomba: dapat delete (delete button) hanya jika tidak ada reservasi dan H-1
+        builder.canDeleteLomba(userRole == Role.KOORDINATOR_LOMBA && lomba.getStatus() == StatusLomba.BELUM_DIMULAI && isAtMostHMinus1 && !hasActiveReservations);
+
+        builder.hasReservations(hasActiveReservations);
         builder.canToggleOngoing(userRole == Role.KOORDINATOR_LOMBA && lomba.getStatus() == StatusLomba.BELUM_DIMULAI);
         
         builder.isReservable(userRole == Role.PESERTA && isAtMostHMinus1);

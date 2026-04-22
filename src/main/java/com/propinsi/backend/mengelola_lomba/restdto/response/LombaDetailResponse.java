@@ -31,6 +31,12 @@ public class LombaDetailResponse {
     @JsonProperty("isEditable")
     private boolean isEditable;
 
+    @JsonProperty("canDeleteLomba")
+    private boolean canDeleteLomba;
+
+    @JsonProperty("hasReservations")
+    private boolean hasReservations;
+
     @JsonProperty("isReservable")
     private boolean isReservable;
     
