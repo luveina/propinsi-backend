@@ -77,7 +77,20 @@ public class LombaServiceImpl implements LombaService {
         List<Gantangan> listGantangan = new ArrayList<>();
         for (int i = 1; i <= 24; i++) {
             Gantangan gantangan = new Gantangan();
-            gantangan.setBlok(1);
+            
+            // Mengikuti blok statis yang digunakan pada modul Penjurian
+            int numBlok = 1;
+            if (java.util.Arrays.asList(9, 10, 8, 7, 1, 2).contains(i)) {
+                numBlok = 1;
+            } else if (java.util.Arrays.asList(24, 23, 17, 18, 16, 15).contains(i)) {
+                numBlok = 2;
+            } else if (java.util.Arrays.asList(22, 21, 19, 20, 14, 13).contains(i)) {
+                numBlok = 3;
+            } else if (java.util.Arrays.asList(11, 12, 6, 5, 3, 4).contains(i)) {
+                numBlok = 4;
+            }
+            gantangan.setBlok(numBlok);
+            
             gantangan.setNomorGantangan(i);
             gantangan.setStatus(GantanganStatus.AVAILABLE); 
             gantangan.setLomba(savedLomba);
