@@ -10,10 +10,12 @@ import com.propinsi.backend.model.User;
 import com.propinsi.backend.penjurian.model.ScoringVote;
 import com.propinsi.backend.penjurian.repository.ScoringVoteRepository;
 import com.propinsi.backend.penjurian.restdto.request.ScoringVoteRequest;
+import com.propinsi.backend.penjurian.restdto.response.GantanganRankingResponse;
 import com.propinsi.backend.penjurian.restdto.response.ScoringBlokDetailResponse;
 import com.propinsi.backend.penjurian.restdto.response.ScoringBlokSummaryResponse;
 import com.propinsi.backend.penjurian.restdto.response.ScoringGantanganResponse;
 import com.propinsi.backend.penjurian.restdto.response.ScoringVoteResponse;
+import com.propinsi.backend.penjurian.restdto.response.SemiFinalStandingsResponse;
 import com.propinsi.backend.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,8 +25,10 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -259,6 +263,90 @@ public class ScoringServiceImpl implements ScoringService {
         if (blokId == null || blokId < 1 || blokId > 4) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "blok_id harus di antara 1 sampai 4");
         }
+    }
+
+    @Override
+    public SemiFinalStandingsResponse getSemiFinalStandings(UUID lombaId) {
+        Lomba lomba = lombaRepository.findById(lombaId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lomba tidak ditemukan"));
+
+        // 1. Ambil semua data vote juri untuk lomba ini
+        List<ScoringVote> allVotes = scoringVoteRepository.findByLombaId(lombaId);
+
+        // 2. Hitung Progress Juri (Juri dianggap selesai jika sudah input 4 blok)
+        // Grouping by Juri ID, lalu hitung jumlah record-nya (jumlah blok)
+        Map<Long, Long> judgeProgress = allVotes.stream()
+                .collect(Collectors.groupingBy(v -> v.getJuri().getId(), Collectors.counting()));
+        
+        long finishedJudges = judgeProgress.values().stream()
+                .filter(count -> count == 4)
+                .count();
+
+        // 3. Hitung Klasemen Sementara
+        List<Gantangan> allGantangans = gantanganRepository.findByLombaIdOrderByNomorGantanganAsc(lombaId);
+        List<GantanganRankingResponse> rankings = new ArrayList<>();
+
+        for (Gantangan g : allGantangans) {
+            // FILTER DQ: Hanya burung dengan status ACTIVE yang masuk klasemen
+            if (g.getStatus() == GantanganStatus.ACTIVE) {
+                // Hitung berapa juri yang memilih gantangan ini
+                long voteCount = allVotes.stream()
+                        .filter(v -> v.getSelectedGantangans().contains(g))
+                        .count();
+
+                rankings.add(GantanganRankingResponse.builder()
+                        .nomorGantangan(g.getNomorGantangan())
+                        .blokId(getBlokIdByNomor(g.getNomorGantangan())) // Helper function
+                        .jumlahAjuan(voteCount)
+                        .build());
+            }
+        }
+
+        // Urutkan klasemen berdasarkan jumlah ajuan terbanyak (Descending)
+        rankings.sort(Comparator.comparing(GantanganRankingResponse::getJumlahAjuan).reversed());
+
+        // 4. LOGIC PENENTU NASIB (Logic Pira)
+        String nextStep = "WAITING";
+        int targetJuri = 4;
+
+        if (finishedJudges >= targetJuri) {
+            if (rankings.isEmpty()) {
+                nextStep = "FINISH";
+            } else {
+                // Ambil nilai ajuan tertinggi
+                long highestVote = rankings.get(0).getJumlahAjuan();
+                
+                // Cek ada berapa burung yang punya nilai tertinggi tersebut
+                long winnersCount = rankings.stream()
+                        .filter(r -> r.getJumlahAjuan() == highestVote)
+                        .count();
+
+                // Jika cuma 1 burung -> FINISH. Jika lebih dari 1 (seri) -> KONCER.
+                if (highestVote > 0) {
+                    nextStep = (winnersCount == 1) ? "FINISH" : "KONCER";
+                } else {
+                    // Jika semua 0 ajuan, teknisnya seri/koncer
+                    nextStep = "KONCER";
+                }
+            }
+        }
+
+        return SemiFinalStandingsResponse.builder()
+                .lombaId(lombaId)
+                .namaLomba(lomba.getNamaLomba())
+                .juriSubmitted((int) finishedJudges)
+                .totalJuri(targetJuri)
+                .nextStep(nextStep)
+                .rankings(rankings)
+                .build();
+    }
+
+    // Helper untuk menentukan Blok ID berdasarkan Nomor Gantangan (sesuaikan dengan logic Nia)
+    private Integer getBlokIdByNomor(Integer nomor) {
+        if (java.util.Arrays.asList(9, 10, 8, 7, 1, 2).contains(nomor)) return 1;
+        if (java.util.Arrays.asList(24, 23, 17, 18, 16, 15).contains(nomor)) return 2;
+        if (java.util.Arrays.asList(22, 21, 19, 20, 14, 13).contains(nomor)) return 3;
+        return 4;
     }
 
     private String toRomanLabel(Integer blokId) {
