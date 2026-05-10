@@ -9,6 +9,12 @@ import com.propinsi.backend.model.Role;
 import com.propinsi.backend.model.User;
 import com.propinsi.backend.penjurian.model.ScoringVote;
 import com.propinsi.backend.penjurian.repository.ScoringVoteRepository;
+import com.propinsi.backend.penjurian.repository.KoncerVoteRepository;
+import com.propinsi.backend.penjurian.restdto.request.KoncerVoteSubmitRequest;
+import com.propinsi.backend.penjurian.restdto.response.KoncerStatusResponse;
+import com.propinsi.backend.mengelola_lomba.model.StatusLomba;
+import com.propinsi.backend.penjurian.model.KoncerVote;
+import com.propinsi.backend.penjurian.restdto.request.KoncerVoteItemRequest;
 import com.propinsi.backend.penjurian.restdto.request.ScoringVoteRequest;
 import com.propinsi.backend.penjurian.restdto.response.ScoringBlokDetailResponse;
 import com.propinsi.backend.penjurian.restdto.response.ScoringBlokSummaryResponse;
@@ -43,6 +49,9 @@ public class ScoringServiceImpl implements ScoringService {
 
     @Autowired
     private ScoringVoteRepository scoringVoteRepository;
+    
+    @Autowired
+    private KoncerVoteRepository koncerVoteRepository;
 
     @Override
     public List<ScoringBlokSummaryResponse> getBlokSummary(UUID lombaId, Long juriId) {
@@ -283,5 +292,75 @@ public class ScoringServiceImpl implements ScoringService {
 
     private boolean isBooked(Gantangan g) {
         return g.getStatus() == GantanganStatus.ACTIVE || g.getStatus() == GantanganStatus.DISQUALIFIED;
+    }
+
+    @Override
+    public KoncerStatusResponse getKoncerStatus(UUID lombaId, Long juriId) {
+        getJuriById(juriId);
+        Lomba lomba = getAssignedLomba(lombaId, juriId);
+        
+        boolean hasSubmitted = koncerVoteRepository.existsByLombaIdAndJuriId(lomba.getId(), juriId);
+        long totalSubmitted = koncerVoteRepository.countDistinctJuriByLombaId(lomba.getId());
+        boolean isFinished = (totalSubmitted == 4);
+
+        return KoncerStatusResponse.builder()
+            .hasSubmitted(hasSubmitted)
+            .totalJuriSubmitted(totalSubmitted)
+            .isKoncerFinished(isFinished)
+            .build();
+    }
+
+    @Override
+    @Transactional
+    public void submitKoncer(UUID lombaId, Long juriId, KoncerVoteSubmitRequest request) {
+        User juri = getJuriById(juriId);
+        Lomba lomba = getAssignedLomba(lombaId, juriId);
+
+        if (lomba.getStatus() == StatusLomba.SELESAI) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lomba sudah selesai");
+        }
+
+        if (koncerVoteRepository.existsByLombaIdAndJuriId(lomba.getId(), juriId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Anda sudah melakukan submit babak koncer");
+        }
+
+        if (request.getVotes() == null || request.getVotes().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Vote tidak boleh kosong");
+        }
+
+        // Validate multiple vote same gantangan from same juri
+        Set<UUID> seenGantangan = new HashSet<>();
+        for (KoncerVoteItemRequest voteItem : request.getVotes()) {
+            if (!seenGantangan.add(voteItem.getGantanganId())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tidak boleh memberikan vote lebih dari 1 kali untuk gantangan yang sama");
+            }
+        }
+
+        List<KoncerVote> votesToSave = new ArrayList<>();
+        for (KoncerVoteItemRequest item : request.getVotes()) {
+            Gantangan gantangan = gantanganRepository.findById(item.getGantanganId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Gantangan tidak ditemukan: " + item.getGantanganId()));
+            
+            if (!gantangan.getLomba().getId().equals(lomba.getId())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Gantangan tidak ada dalam lomba ini");
+            }
+
+            KoncerVote koncerVote = KoncerVote.builder()
+                .lomba(lomba)
+                .juri(juri)
+                .gantangan(gantangan)
+                .poin(item.getPoin())
+                .build();
+            votesToSave.add(koncerVote);
+        }
+
+        koncerVoteRepository.saveAll(votesToSave);
+
+        // Check format 4 juri after insert
+        long totalSubmitted = koncerVoteRepository.countDistinctJuriByLombaId(lomba.getId());
+        if (totalSubmitted == 4 && lomba.getStatus() != StatusLomba.SELESAI) {
+            lomba.setStatus(StatusLomba.SELESAI);
+            lombaRepository.save(lomba);
+        }
     }
 }

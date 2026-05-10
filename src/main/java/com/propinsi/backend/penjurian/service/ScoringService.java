@@ -1,5 +1,7 @@
 package com.propinsi.backend.penjurian.service;
 
+import com.propinsi.backend.penjurian.restdto.request.KoncerVoteSubmitRequest;
+import com.propinsi.backend.penjurian.restdto.response.KoncerStatusResponse;
 import com.propinsi.backend.penjurian.restdto.request.ScoringVoteRequest;
 import com.propinsi.backend.penjurian.restdto.response.ScoringBlokDetailResponse;
 import com.propinsi.backend.penjurian.restdto.response.ScoringBlokSummaryResponse;
@@ -15,4 +17,8 @@ public interface ScoringService {
     ScoringVoteResponse submitVote(UUID lombaId, Long juriId, ScoringVoteRequest request);
     ScoringGantanganResponse addWarning(UUID lombaId, Long juriId, UUID gantanganId);
     ScoringGantanganResponse disqualify(UUID lombaId, Long juriId, UUID gantanganId);
+    
+    // Koncer methods
+    KoncerStatusResponse getKoncerStatus(UUID lombaId, Long juriId);
+    void submitKoncer(UUID lombaId, Long juriId, KoncerVoteSubmitRequest request);
 }

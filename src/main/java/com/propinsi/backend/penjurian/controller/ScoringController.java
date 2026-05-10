@@ -1,6 +1,8 @@
 package com.propinsi.backend.penjurian.controller;
 
 import com.propinsi.backend.model.User;
+import com.propinsi.backend.penjurian.restdto.request.KoncerVoteSubmitRequest;
+import com.propinsi.backend.penjurian.restdto.response.KoncerStatusResponse;
 import com.propinsi.backend.penjurian.restdto.request.ScoringActionRequest;
 import com.propinsi.backend.penjurian.restdto.request.ScoringVoteRequest;
 import com.propinsi.backend.penjurian.restdto.response.ScoringBlokDetailResponse;
@@ -64,5 +66,21 @@ public class ScoringController {
             @RequestParam UUID lombaId,
             @Valid @RequestBody ScoringActionRequest request) {
         return ResponseEntity.ok(BaseResponse.success(scoringService.disqualify(lombaId, juriLogin.getId(), request.getGantanganId()), "Gantangan berhasil didiskualifikasi"));
+    }
+
+    @GetMapping("/koncer/status")
+    public ResponseEntity<BaseResponse<KoncerStatusResponse>> getKoncerStatus(
+            @AuthenticationPrincipal User juriLogin,
+            @RequestParam UUID lombaId) {
+        return ResponseEntity.ok(BaseResponse.success(scoringService.getKoncerStatus(lombaId, juriLogin.getId()), "Status koncer berhasil diambil"));
+    }
+
+    @PostMapping("/koncer")
+    public ResponseEntity<BaseResponse<String>> submitKoncer(
+            @AuthenticationPrincipal User juriLogin,
+            @RequestParam UUID lombaId,
+            @Valid @RequestBody KoncerVoteSubmitRequest request) {
+        scoringService.submitKoncer(lombaId, juriLogin.getId(), request);
+        return ResponseEntity.ok(BaseResponse.success("Berhasil", "Penilaian babak koncer berhasil disimpan"));
     }
 }
