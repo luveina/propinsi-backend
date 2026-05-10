@@ -67,6 +67,7 @@ public class TicketServiceImpl implements TicketService {
 
         return TicketResponse.builder()
                 .id(reservasi.getId())
+                .namaPeserta(reservasi.getPeserta().getFullName())
                 .namaLomba(reservasi.getLomba().getNamaLomba())
                 .tanggal(tanggal)
                 .lokasi(reservasi.getLomba().getLokasi())

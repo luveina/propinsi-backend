@@ -12,6 +12,9 @@ public class TicketResponse {
 
     private UUID id;
 
+    // Info peserta
+    private String namaPeserta;
+
     // Info lomba
     private String namaLomba;
     private String tanggal;       // format: "Mar 28, 2026 - 11.00 WIB"

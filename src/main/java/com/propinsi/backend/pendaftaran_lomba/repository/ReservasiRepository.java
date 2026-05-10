@@ -7,6 +7,7 @@ import com.propinsi.backend.pendaftaran_lomba.model.StatusReservasi;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -22,4 +23,6 @@ public interface ReservasiRepository extends JpaRepository<Reservasi, UUID> {
     List<Reservasi> findByStatus(StatusReservasi status);
     
     boolean existsByLombaIdAndStatusIn(UUID lombaId, List<StatusReservasi> statuses);
+
+    List<Reservasi> findByStatusAndWaktuReservasiBetween(StatusReservasi status, LocalDateTime start, LocalDateTime end);
 }
