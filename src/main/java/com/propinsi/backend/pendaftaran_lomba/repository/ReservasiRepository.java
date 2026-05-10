@@ -25,4 +25,5 @@ public interface ReservasiRepository extends JpaRepository<Reservasi, UUID> {
     boolean existsByLombaIdAndStatusIn(UUID lombaId, List<StatusReservasi> statuses);
 
     List<Reservasi> findByStatusAndWaktuReservasiBetween(StatusReservasi status, LocalDateTime start, LocalDateTime end);
+    List<Reservasi> findByWaktuReservasiBetween(LocalDateTime start, LocalDateTime end);
 }

@@ -24,18 +24,39 @@ public class DashboardServiceImpl implements DashboardService {
     private final ReservasiRepository reservasiRepository;
 
     @Override
-    public AnalyticsResponse getAnalytics(LocalDate startDate, LocalDate endDate, String jenisBurung, String kelas) {
+    public AnalyticsResponse getAnalytics(LocalDate startDate, LocalDate endDate, List<String> jenisBurung, List<String> kelas) {
         LocalDateTime start = startDate.atStartOfDay();
         LocalDateTime end = endDate.atTime(23, 59, 59);
 
         List<Reservasi> paid = reservasiRepository
                 .findByStatusAndWaktuReservasiBetween(StatusReservasi.PAID, start, end)
                 .stream()
-                .filter(r -> jenisBurung == null || r.getLomba().getJenisBurung().name().equalsIgnoreCase(jenisBurung))
-                .filter(r -> kelas == null || r.getLomba().getKelas().equalsIgnoreCase(kelas))
+                .filter(r -> jenisBurung == null || jenisBurung.isEmpty() || jenisBurung.stream().anyMatch(jb -> r.getLomba().getJenisBurung().name().equalsIgnoreCase(jb)))
+                .filter(r -> kelas == null || kelas.isEmpty() || kelas.stream().anyMatch(k -> r.getLomba().getKelas().equalsIgnoreCase(k)))
                 .collect(Collectors.toList());
 
         long total = paid.size();
+
+        long totalRevenue = paid.stream()
+                .mapToLong(r -> r.getNominal() != null ? r.getNominal().longValue() : 0L)
+                .sum();
+
+        List<Reservasi> allReservasi = reservasiRepository
+                .findByWaktuReservasiBetween(start, end)
+                .stream()
+                .filter(r -> jenisBurung == null || jenisBurung.isEmpty() || jenisBurung.stream().anyMatch(jb -> r.getLomba().getJenisBurung().name().equalsIgnoreCase(jb)))
+                .filter(r -> kelas == null || kelas.isEmpty() || kelas.stream().anyMatch(k -> r.getLomba().getKelas().equalsIgnoreCase(k)))
+                .collect(Collectors.toList());
+
+        long allCount = allReservasi.size();
+        double bookingSuccessRate = allCount == 0 ? 0.0 : Math.round((double) total / allCount * 1000.0) / 10.0;
+
+        long totalKapasitas = paid.stream()
+                .map(Reservasi::getLomba)
+                .distinct()
+                .mapToInt(l -> l.getListGantangan() != null ? l.getListGantangan().size() : 0)
+                .sum();
+        double occupancyRate = totalKapasitas == 0 ? 0.0 : Math.round((double) total / totalKapasitas * 1000.0) / 10.0;
 
         Map<String, List<Reservasi>> byKelas = paid.stream()
                 .collect(Collectors.groupingBy(r -> r.getLomba().getKelas()));
@@ -91,6 +112,10 @@ public class DashboardServiceImpl implements DashboardService {
                 .collect(Collectors.toList());
 
         return AnalyticsResponse.builder()
+                .totalTiketTerjual(total)
+                .totalRevenue(totalRevenue)
+                .bookingSuccessRate(bookingSuccessRate)
+                .occupancyRate(occupancyRate)
                 .top5Classes(top5Classes)
                 .top5BirdTypes(top5BirdTypes)
                 .trendData(trendData)
