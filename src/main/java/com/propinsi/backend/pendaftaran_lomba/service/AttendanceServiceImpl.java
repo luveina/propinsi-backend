@@ -31,69 +31,93 @@ public class AttendanceServiceImpl implements AttendanceService {
 
     @Override
     public List<ParticipantResponse> getParticipants(UUID eventId, String classId, String keyword, String attendanceStatus) {
-        // Validate event exists
-        Lomba event = lombaRepository.findById(eventId)
-                .orElseThrow(() -> new IllegalArgumentException("Event not found"));
+        try {
+            // Validate event exists
+            Lomba event = lombaRepository.findById(eventId)
+                    .orElseThrow(() -> new IllegalArgumentException("Event not found"));
 
-        // Get all gantangan for this event and class
-        List<Gantangan> gantangans = gantanganRepository.findByLombaIdOrderByNomorGantanganAsc(eventId);
+            // Get all gantangan for this event
+            List<Gantangan> gantangans = gantanganRepository.findByLombaIdOrderByNomorGantanganAsc(eventId);
 
-        // Filter by class if provided
-        if (classId != null && !classId.isEmpty()) {
+            // Filter: Only show gantangan that have peserta (booked) and PAID status
             gantangans = gantangans.stream()
-                    .filter(g -> event.getKelas().equalsIgnoreCase(classId))
+                    .filter(g -> g != null && g.getPeserta() != null) // Only booked gantangan
+                    .filter(g -> {
+                        try {
+                            // Check if reservasi exists and has PAID status
+                            return reservasiRepository.findByGantangan(g)
+                                    .map(r -> r != null && StatusReservasi.PAID.equals(r.getStatus()))
+                                    .orElse(false);
+                        } catch (Exception e) {
+                            return false;
+                        }
+                    })
                     .collect(Collectors.toList());
-        }
 
-        // Filter by attendance status if provided
-        if (attendanceStatus != null && !attendanceStatus.isEmpty()) {
-            if ("present".equalsIgnoreCase(attendanceStatus)) {
+            // Filter by class if provided
+            if (classId != null && !classId.isEmpty()) {
                 gantangans = gantangans.stream()
-                        .filter(g -> Boolean.TRUE.equals(g.getIsPresent()))
-                        .collect(Collectors.toList());
-            } else if ("absent".equalsIgnoreCase(attendanceStatus)) {
-                gantangans = gantangans.stream()
-                        .filter(g -> Boolean.FALSE.equals(g.getIsPresent()))
+                        .filter(g -> g.getLomba() != null && g.getLomba().getKelas() != null && 
+                                g.getLomba().getKelas().equalsIgnoreCase(classId))
                         .collect(Collectors.toList());
             }
-        }
 
-        // Convert to response and apply keyword filter
-        List<ParticipantResponse> responses = gantangans.stream()
-                .map(this::convertToParticipantResponse)
-                .collect(Collectors.toList());
+            // Filter by attendance status if provided
+            if (attendanceStatus != null && !attendanceStatus.isEmpty()) {
+                if ("present".equalsIgnoreCase(attendanceStatus)) {
+                    gantangans = gantangans.stream()
+                            .filter(g -> Boolean.TRUE.equals(g.getIsPresent()))
+                            .collect(Collectors.toList());
+                } else if ("absent".equalsIgnoreCase(attendanceStatus)) {
+                    gantangans = gantangans.stream()
+                            .filter(g -> Boolean.FALSE.equals(g.getIsPresent()) || g.getIsPresent() == null)
+                            .collect(Collectors.toList());
+                }
+            }
 
-        // Apply keyword search if provided
-        if (keyword != null && !keyword.isEmpty()) {
-            String lowerKeyword = keyword.toLowerCase();
-            responses = responses.stream()
-                    .filter(p -> p.getParticipantName().toLowerCase().contains(lowerKeyword) ||
-                               p.getGantanganNo().toString().contains(keyword))
+            // Convert to response and apply keyword filter
+            List<ParticipantResponse> responses = gantangans.stream()
+                    .map(this::convertToParticipantResponse)
                     .collect(Collectors.toList());
-        }
 
-        return responses;
+            // Apply keyword search if provided (search by participant name)
+            if (keyword != null && !keyword.isEmpty()) {
+                String lowerKeyword = keyword.toLowerCase();
+                responses = responses.stream()
+                        .filter(p -> p.getParticipantName() != null && 
+                                p.getParticipantName().toLowerCase().contains(lowerKeyword))
+                        .collect(Collectors.toList());
+            }
+
+            return responses;
+        } catch (Exception e) {
+            throw new RuntimeException("Error fetching participants: " + e.getMessage(), e);
+        }
     }
 
     @Override
     public ParticipantResponse checkIn(UUID gantanganId, Boolean isPresent) {
-        // Get gantangan
-        Gantangan gantangan = gantanganRepository.findById(gantanganId)
-                .orElseThrow(() -> new IllegalArgumentException("Participant not found"));
+        try {
+            // Get gantangan
+            Gantangan gantangan = gantanganRepository.findById(gantanganId)
+                    .orElseThrow(() -> new IllegalArgumentException("Participant not found"));
 
-        // Verify participant has PAID status
-        Reservasi reservasi = reservasiRepository.findByGantangan(gantangan)
-                .orElseThrow(() -> new IllegalArgumentException("Reservation not found"));
+            // Verify participant has PAID status
+            Reservasi reservasi = reservasiRepository.findByGantangan(gantangan)
+                    .orElseThrow(() -> new IllegalArgumentException("Reservation not found"));
 
-        if (!StatusReservasi.PAID.equals(reservasi.getStatus())) {
-            throw new IllegalStateException("Participant must have PAID status to check in");
+            if (!StatusReservasi.PAID.equals(reservasi.getStatus())) {
+                throw new IllegalStateException("Participant must have PAID status to check in");
+            }
+
+            // Update attendance status
+            gantangan.setIsPresent(isPresent);
+            gantanganRepository.save(gantangan);
+
+            return convertToParticipantResponse(gantangan);
+        } catch (Exception e) {
+            throw new RuntimeException("Error during check-in: " + e.getMessage(), e);
         }
-
-        // Update attendance status
-        gantangan.setIsPresent(isPresent);
-        gantanganRepository.save(gantangan);
-
-        return convertToParticipantResponse(gantangan);
     }
 
     private ParticipantResponse convertToParticipantResponse(Gantangan gantangan) {
