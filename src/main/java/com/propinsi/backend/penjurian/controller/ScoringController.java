@@ -9,6 +9,7 @@ import com.propinsi.backend.penjurian.restdto.response.ScoringBlokDetailResponse
 import com.propinsi.backend.penjurian.restdto.response.ScoringBlokSummaryResponse;
 import com.propinsi.backend.penjurian.restdto.response.ScoringGantanganResponse;
 import com.propinsi.backend.penjurian.restdto.response.ScoringVoteResponse;
+import com.propinsi.backend.penjurian.restdto.response.SemiFinalStandingsResponse;
 import com.propinsi.backend.penjurian.service.ScoringService;
 import com.propinsi.backend.restdto.response.BaseResponse;
 import jakarta.validation.Valid;
@@ -66,6 +67,15 @@ public class ScoringController {
             @RequestParam UUID lombaId,
             @Valid @RequestBody ScoringActionRequest request) {
         return ResponseEntity.ok(BaseResponse.success(scoringService.disqualify(lombaId, juriLogin.getId(), request.getGantanganId()), "Gantangan berhasil didiskualifikasi"));
+    }
+
+    @GetMapping("/semi-final")
+    public ResponseEntity<BaseResponse<SemiFinalStandingsResponse>> getSemiFinalStandings(
+            @RequestParam UUID lombaId) {
+        return ResponseEntity.ok(BaseResponse.success(
+                scoringService.getSemiFinalStandings(lombaId), 
+                "Klasemen semi-final berhasil diambil"
+        ));
     }
 
     @GetMapping("/koncer/status")

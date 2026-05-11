@@ -16,21 +16,25 @@ import com.propinsi.backend.mengelola_lomba.model.StatusLomba;
 import com.propinsi.backend.penjurian.model.KoncerVote;
 import com.propinsi.backend.penjurian.restdto.request.KoncerVoteItemRequest;
 import com.propinsi.backend.penjurian.restdto.request.ScoringVoteRequest;
+import com.propinsi.backend.penjurian.restdto.response.GantanganRankingResponse;
 import com.propinsi.backend.penjurian.restdto.response.ScoringBlokDetailResponse;
 import com.propinsi.backend.penjurian.restdto.response.ScoringBlokSummaryResponse;
 import com.propinsi.backend.penjurian.restdto.response.ScoringGantanganResponse;
 import com.propinsi.backend.penjurian.restdto.response.ScoringVoteResponse;
+import com.propinsi.backend.penjurian.restdto.response.SemiFinalStandingsResponse;
 import com.propinsi.backend.repository.UserRepository;
-import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -268,6 +272,77 @@ public class ScoringServiceImpl implements ScoringService {
         if (blokId == null || blokId < 1 || blokId > 4) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "blok_id harus di antara 1 sampai 4");
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public SemiFinalStandingsResponse getSemiFinalStandings(UUID lombaId) {
+        Lomba lomba = lombaRepository.findById(lombaId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lomba tidak ditemukan"));
+
+        List<ScoringVote> allVotes = scoringVoteRepository.findByLombaId(lombaId);
+
+        // 1. Hitung Progress Juri
+        Map<Long, Long> judgeProgress = allVotes.stream()
+                .collect(Collectors.groupingBy(v -> v.getJuri().getId(), Collectors.counting()));
+        long finishedJudges = judgeProgress.values().stream().filter(count -> count == 4).count();
+
+        // 2. Olah Klasemen (Cegah Dobel & Filter ACTIVE)
+        List<Gantangan> allGantangans = gantanganRepository.findByLombaIdOrderByNomorGantanganAsc(lombaId)
+                .stream().distinct().collect(Collectors.toList());
+
+        List<GantanganRankingResponse> rankings = new ArrayList<>();
+        Set<Integer> uniqueCheck = new HashSet<>();
+
+        for (Gantangan g : allGantangans) {
+            if (g.getStatus() == GantanganStatus.ACTIVE && !uniqueCheck.contains(g.getNomorGantangan())) {
+                long voteCount = allVotes.stream()
+                        .filter(v -> v.getSelectedGantangans().stream().anyMatch(sg -> sg.getId().equals(g.getId())))
+                        .count();
+
+                if (voteCount > 0) {
+                    rankings.add(GantanganRankingResponse.builder()
+                            .nomorGantangan(g.getNomorGantangan())
+                            .blokId(getBlokIdByNomor(g.getNomorGantangan()))
+                            .jumlahAjuan(voteCount).build());
+                    uniqueCheck.add(g.getNomorGantangan());
+                }
+            }
+        }
+
+        rankings.sort(Comparator.comparing(GantanganRankingResponse::getJumlahAjuan).reversed());
+
+        // 3. Logic Penentu Nasib buat NIA
+        String nextStep = "WAITING";
+        List<GantanganRankingResponse> koncerQualifiers = new ArrayList<>();
+        int targetJuri = 4;
+
+        if (finishedJudges >= targetJuri) {
+            if (!rankings.isEmpty()) {
+                long highestVote = rankings.get(0).getJumlahAjuan();
+                koncerQualifiers = rankings.stream()
+                        .filter(r -> r.getJumlahAjuan() == highestVote)
+                        .collect(Collectors.toList());
+
+                nextStep = (koncerQualifiers.size() == 1) ? "FINISH" : "KONCER";
+            } else {
+                nextStep = "FINISH";
+            }
+        }
+
+        return SemiFinalStandingsResponse.builder()
+                .lombaId(lombaId).namaLomba(lomba.getNamaLomba())
+                .juriSubmitted((int) finishedJudges).totalJuri(targetJuri)
+                .nextStep(nextStep).rankings(rankings)
+                .koncerQualifiers(koncerQualifiers).build();
+    }
+
+    // Helper untuk menentukan Blok ID berdasarkan Nomor Gantangan (sesuaikan dengan logic Nia)
+    private Integer getBlokIdByNomor(Integer nomor) {
+        if (java.util.Arrays.asList(9, 10, 8, 7, 1, 2).contains(nomor)) return 1;
+        if (java.util.Arrays.asList(24, 23, 17, 18, 16, 15).contains(nomor)) return 2;
+        if (java.util.Arrays.asList(22, 21, 19, 20, 14, 13).contains(nomor)) return 3;
+        return 4;
     }
 
     private String toRomanLabel(Integer blokId) {
