@@ -22,6 +22,8 @@ import com.propinsi.backend.penjurian.restdto.response.ScoringBlokSummaryRespons
 import com.propinsi.backend.penjurian.restdto.response.ScoringGantanganResponse;
 import com.propinsi.backend.penjurian.restdto.response.ScoringVoteResponse;
 import com.propinsi.backend.penjurian.restdto.response.SemiFinalStandingsResponse;
+import com.propinsi.backend.mengelola_lomba.restdto.response.FinalResultResponse;
+import com.propinsi.backend.mengelola_lomba.restdto.response.FinalResultGantanganResponse;
 import com.propinsi.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -302,6 +304,7 @@ public class ScoringServiceImpl implements ScoringService {
 
                 if (voteCount > 0) {
                     rankings.add(GantanganRankingResponse.builder()
+                            .gantanganId(g.getId())
                             .nomorGantangan(g.getNomorGantangan())
                             .blokId(getBlokIdByNomor(g.getNomorGantangan()))
                             .jumlahAjuan(voteCount).build());
@@ -378,10 +381,21 @@ public class ScoringServiceImpl implements ScoringService {
         long totalSubmitted = koncerVoteRepository.countDistinctJuriByLombaId(lomba.getId());
         boolean isFinished = (totalSubmitted == 4);
 
+        java.util.Map<String, String> userVotes = null;
+        if (hasSubmitted) {
+            java.util.List<com.propinsi.backend.penjurian.model.KoncerVote> votes = koncerVoteRepository.findByLombaIdAndJuriId(lomba.getId(), juriId);
+            userVotes = votes.stream()
+                .collect(java.util.stream.Collectors.toMap(
+                    v -> v.getGantangan().getId().toString(),
+                    v -> v.getPoin().toString()
+                ));
+        }
+
         return KoncerStatusResponse.builder()
             .hasSubmitted(hasSubmitted)
             .totalJuriSubmitted(totalSubmitted)
             .isKoncerFinished(isFinished)
+            .userVotes(userVotes)
             .build();
     }
 
@@ -437,5 +451,106 @@ public class ScoringServiceImpl implements ScoringService {
             lomba.setStatus(StatusLomba.SELESAI);
             lombaRepository.save(lomba);
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public FinalResultResponse getFinalResult(UUID lombaId) {
+        Lomba lomba = lombaRepository.findById(lombaId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lomba tidak ditemukan"));
+
+        SemiFinalStandingsResponse semiFinal = getSemiFinalStandings(lombaId);
+        List<GantanganRankingResponse> rankings = semiFinal.getRankings();
+        String nextStep = semiFinal.getNextStep();
+        
+        List<Gantangan> allGantangan = gantanganRepository.findByLombaIdOrderByNomorGantanganAsc(lombaId);
+        
+        Map<Integer, Long> ajuanMap = rankings.stream()
+            .collect(Collectors.toMap(GantanganRankingResponse::getNomorGantangan, GantanganRankingResponse::getJumlahAjuan));
+            
+        List<FinalResultGantanganResponse> results = new ArrayList<>();
+        
+        if ("FINISH".equals(nextStep)) {
+            List<Long> distinctAjuans = rankings.stream().map(GantanganRankingResponse::getJumlahAjuan).distinct().sorted(Comparator.reverseOrder()).toList();
+            Long rank1Ajuan = distinctAjuans.size() > 0 ? distinctAjuans.get(0) : null;
+            Long rank2Ajuan = distinctAjuans.size() > 1 ? distinctAjuans.get(1) : null;
+            
+            for (Gantangan g : allGantangan) {
+                Long ajuan = ajuanMap.getOrDefault(g.getNomorGantangan(), 0L);
+                String hasilKoncer = null;
+                Integer totalPoin = null;
+                
+                if (ajuan > 0) {
+                    if (rank1Ajuan != null && ajuan.equals(rank1Ajuan)) {
+                        hasilKoncer = "A";
+                        totalPoin = 100;
+                    } else if (rank2Ajuan != null && ajuan.equals(rank2Ajuan)) {
+                        hasilKoncer = "B";
+                        totalPoin = 40;
+                    }
+                }
+                
+                results.add(FinalResultGantanganResponse.builder()
+                    .nomorGantangan(g.getNomorGantangan())
+                    .totalAjuan(ajuan)
+                    .hasilKoncer(hasilKoncer)
+                    .totalPoin(totalPoin)
+                    .build());
+            }
+        } else {
+            List<KoncerVote> koncerVotes = koncerVoteRepository.findByLombaId(lombaId);
+            Map<Integer, List<KoncerVote>> votesByGantangan = koncerVotes.stream()
+                .collect(Collectors.groupingBy(v -> v.getGantangan().getNomorGantangan()));
+            
+            Set<Integer> qualifiedNomors = (semiFinal.getKoncerQualifiers() != null) ? 
+                semiFinal.getKoncerQualifiers().stream().map(GantanganRankingResponse::getNomorGantangan).collect(Collectors.toSet()) 
+                : new HashSet<>();
+                
+            for (Gantangan g : allGantangan) {
+                Long ajuan = ajuanMap.getOrDefault(g.getNomorGantangan(), 0L);
+                
+                String hasilKoncer = null;
+                Integer totalPoin = null;
+                
+                boolean isQualified = qualifiedNomors.contains(g.getNomorGantangan());
+                
+                if (isQualified || votesByGantangan.containsKey(g.getNomorGantangan())) {
+                    List<KoncerVote> gVotes = votesByGantangan.getOrDefault(g.getNomorGantangan(), Collections.emptyList());
+                    int aCount = 0;
+                    int bCount = 0;
+                    StringBuilder sb = new StringBuilder();
+                    for (KoncerVote v : gVotes) {
+                        if (v.getPoin() != null) {
+                            sb.append(v.getPoin().name());
+                            if (v.getPoin().name().equals("A")) aCount++;
+                            else if (v.getPoin().name().equals("B")) bCount++;
+                        }
+                    }
+                    
+                    char[] chars = sb.toString().toCharArray();
+                    java.util.Arrays.sort(chars);
+                    hasilKoncer = new String(chars);
+                    totalPoin = (aCount * 100) + (bCount * 40);
+                }
+                
+                results.add(FinalResultGantanganResponse.builder()
+                    .nomorGantangan(g.getNomorGantangan())
+                    .totalAjuan(ajuan)
+                    .hasilKoncer(hasilKoncer)
+                    .totalPoin(totalPoin)
+                    .build());
+            }
+        }
+        
+        results.sort((r1, r2) -> {
+            Integer p1 = r1.getTotalPoin() == null ? -1 : r1.getTotalPoin();
+            Integer p2 = r2.getTotalPoin() == null ? -1 : r2.getTotalPoin();
+            int pCompare = p2.compareTo(p1);
+            if (pCompare != 0) return pCompare;
+            
+            return r1.getNomorGantangan().compareTo(r2.getNomorGantangan());
+        });
+        
+        return new FinalResultResponse(results);
     }
 }

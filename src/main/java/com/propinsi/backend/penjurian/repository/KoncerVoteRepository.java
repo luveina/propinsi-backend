@@ -17,4 +17,6 @@ public interface KoncerVoteRepository extends JpaRepository<KoncerVote, UUID> {
     long countDistinctJuriByLombaId(@Param("lombaId") UUID lombaId);
     
     List<KoncerVote> findByLombaId(UUID lombaId);
+    
+    List<KoncerVote> findByLombaIdAndJuriId(UUID lombaId, Long juriId);
 }

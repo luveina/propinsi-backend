@@ -28,7 +28,6 @@ public class Lomba {
     private String lokasi;
 
     @NotNull(message = "Waktu dan Tanggal wajib diisi")
-    @Future(message = "Tanggal tidak boleh di waktu lampau")
     private LocalDateTime waktuTanggal;
 
     @Enumerated(EnumType.STRING)

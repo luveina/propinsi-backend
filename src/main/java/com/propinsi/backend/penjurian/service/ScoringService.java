@@ -8,6 +8,7 @@ import com.propinsi.backend.penjurian.restdto.response.ScoringBlokSummaryRespons
 import com.propinsi.backend.penjurian.restdto.response.ScoringGantanganResponse;
 import com.propinsi.backend.penjurian.restdto.response.ScoringVoteResponse;
 import com.propinsi.backend.penjurian.restdto.response.SemiFinalStandingsResponse;
+import com.propinsi.backend.mengelola_lomba.restdto.response.FinalResultResponse;
 
 import java.util.List;
 import java.util.UUID;
@@ -24,4 +25,7 @@ public interface ScoringService {
     // Koncer methods
     KoncerStatusResponse getKoncerStatus(UUID lombaId, Long juriId);
     void submitKoncer(UUID lombaId, Long juriId, KoncerVoteSubmitRequest request);
+    
+    // Hasil Akhir
+    FinalResultResponse getFinalResult(UUID lombaId);
 }

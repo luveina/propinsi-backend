@@ -5,6 +5,9 @@ import com.propinsi.backend.mengelola_lomba.restdto.request.AssignJuriRequest;
 import com.propinsi.backend.mengelola_lomba.restdto.request.LombaRequest;
 import com.propinsi.backend.mengelola_lomba.restdto.response.LombaDetailResponse;
 import com.propinsi.backend.mengelola_lomba.restdto.response.LombaResponse;
+import com.propinsi.backend.mengelola_lomba.restdto.response.FinalResultResponse;
+import com.propinsi.backend.mengelola_lomba.restdto.response.FinalResultGantanganResponse;
+import com.propinsi.backend.penjurian.service.ScoringService;
 import com.propinsi.backend.mengelola_lomba.restdto.response.UserSummaryResponse;
 import com.propinsi.backend.mengelola_lomba.service.LombaService;
 import com.propinsi.backend.repository.UserRepository;
@@ -34,6 +37,9 @@ public class LombaController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private ScoringService scoringService;
 
     @PreAuthorize("hasAnyRole('KOORDINATOR_LOMBA', 'ADMIN')") 
     @PostMapping
@@ -152,6 +158,11 @@ public class LombaController {
             @PathVariable UUID id,
             @AuthenticationPrincipal User currentUser) {
         return ResponseEntity.ok(lombaService.getLombaDetail(id, currentUser));
+    }
+
+    @GetMapping("/result/{id}")
+    public ResponseEntity<BaseResponse<FinalResultResponse>> getLombaResult(@PathVariable UUID id) {
+        return ResponseEntity.ok(BaseResponse.success(scoringService.getFinalResult(id), "Hasil akhir lomba berhasil diambil"));
     }
 
     @PatchMapping("/{id}/status")
