@@ -106,7 +106,8 @@ public class ScoringServiceImpl implements ScoringService {
 
         User currentJuri = getJuriById(juriId);
 
-        Lomba lomba = getAssignedLomba(lombaId, currentJuri.getId());
+        Lomba lombaInfo = getAssignedLomba(lombaId, currentJuri.getId());
+        Lomba lomba = lombaRepository.findByIdForUpdate(lombaInfo.getId()).orElse(lombaInfo);
 
         List<Gantangan> allGantangan = gantanganRepository.findByLombaIdOrderByNomorGantanganAsc(lomba.getId());
         List<Gantangan> blockGantangan = getGantanganByBlok(allGantangan, request.getBlokId());
@@ -145,6 +146,13 @@ public class ScoringServiceImpl implements ScoringService {
 
         vote.setSelectedGantangans(new HashSet<>(selectedGantangan));
         scoringVoteRepository.save(vote);
+        scoringVoteRepository.flush(); // Ensure vote is flushed so getSemiFinalStandings sees it
+
+        SemiFinalStandingsResponse semiFinal = getSemiFinalStandings(lombaId);
+        if ("FINISH".equals(semiFinal.getNextStep()) && lomba.getStatus() != StatusLomba.SELESAI) {
+            lomba.setStatus(StatusLomba.SELESAI);
+            lombaRepository.save(lomba);
+        }
 
         return ScoringVoteResponse.builder()
             .message("Ajuan gantangan berhasil disimpan")
@@ -318,7 +326,8 @@ public class ScoringServiceImpl implements ScoringService {
         // 3. Logic Penentu Nasib buat NIA
         String nextStep = "WAITING";
         List<GantanganRankingResponse> koncerQualifiers = new ArrayList<>();
-        int targetJuri = 4;
+        int targetJuri = lomba.getListJuri() != null ? lomba.getListJuri().size() : lomba.getJumlahJuri();
+        if (targetJuri == 0) targetJuri = lomba.getJumlahJuri();
 
         if (finishedJudges >= targetJuri) {
             if (!rankings.isEmpty()) {
@@ -379,7 +388,9 @@ public class ScoringServiceImpl implements ScoringService {
         
         boolean hasSubmitted = koncerVoteRepository.existsByLombaIdAndJuriId(lomba.getId(), juriId);
         long totalSubmitted = koncerVoteRepository.countDistinctJuriByLombaId(lomba.getId());
-        boolean isFinished = (totalSubmitted == 4);
+        int jumlahJuri = lomba.getListJuri() != null ? lomba.getListJuri().size() : lomba.getJumlahJuri();
+        if (jumlahJuri == 0) jumlahJuri = lomba.getJumlahJuri();
+        boolean isFinished = (totalSubmitted >= jumlahJuri);
 
         java.util.Map<String, String> userVotes = null;
         if (hasSubmitted) {
@@ -403,7 +414,10 @@ public class ScoringServiceImpl implements ScoringService {
     @Transactional
     public void submitKoncer(UUID lombaId, Long juriId, KoncerVoteSubmitRequest request) {
         User juri = getJuriById(juriId);
-        Lomba lomba = getAssignedLomba(lombaId, juriId);
+        Lomba lombaInfo = getAssignedLomba(lombaId, juriId);
+        
+        // Lock the lomba to prevent race conditions during submission and status updates
+        Lomba lomba = lombaRepository.findByIdForUpdate(lombaInfo.getId()).orElse(lombaInfo);
 
         if (lomba.getStatus() == StatusLomba.SELESAI) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lomba sudah selesai");
@@ -445,9 +459,12 @@ public class ScoringServiceImpl implements ScoringService {
 
         koncerVoteRepository.saveAll(votesToSave);
 
-        // Check format 4 juri after insert
+        // Check format juri after insert
         long totalSubmitted = koncerVoteRepository.countDistinctJuriByLombaId(lomba.getId());
-        if (totalSubmitted == 4 && lomba.getStatus() != StatusLomba.SELESAI) {
+        int jumlahJuri = lomba.getListJuri() != null ? lomba.getListJuri().size() : lomba.getJumlahJuri();
+        if (jumlahJuri == 0) jumlahJuri = lomba.getJumlahJuri();
+        
+        if (totalSubmitted >= jumlahJuri && lomba.getStatus() != StatusLomba.SELESAI) {
             lomba.setStatus(StatusLomba.SELESAI);
             lombaRepository.save(lomba);
         }
