@@ -305,6 +305,7 @@ public class ScoringServiceImpl implements ScoringService {
         Set<Integer> uniqueCheck = new HashSet<>();
 
         for (Gantangan g : allGantangans) {
+            // Hanya proses jika ACTIVE dan nomor belum pernah diproses
             if (g.getStatus() == GantanganStatus.ACTIVE && !uniqueCheck.contains(g.getNomorGantangan())) {
                 long voteCount = allVotes.stream()
                         .filter(v -> v.getSelectedGantangans().stream().anyMatch(sg -> sg.getId().equals(g.getId())))
@@ -312,7 +313,6 @@ public class ScoringServiceImpl implements ScoringService {
 
                 if (voteCount > 0) {
                     rankings.add(GantanganRankingResponse.builder()
-                            .gantanganId(g.getId())
                             .nomorGantangan(g.getNomorGantangan())
                             .blokId(getBlokIdByNomor(g.getNomorGantangan()))
                             .jumlahAjuan(voteCount).build());
@@ -321,24 +321,37 @@ public class ScoringServiceImpl implements ScoringService {
             }
         }
 
+        // Urutkan (Tertinggi di atas)
         rankings.sort(Comparator.comparing(GantanganRankingResponse::getJumlahAjuan).reversed());
 
-        // 3. Logic Penentu Nasib buat NIA
+        // 3. Logic Penentu Nasib (DI SINI KUNCINYA)
         String nextStep = "WAITING";
         List<GantanganRankingResponse> koncerQualifiers = new ArrayList<>();
-        int targetJuri = lomba.getListJuri() != null ? lomba.getListJuri().size() : lomba.getJumlahJuri();
-        if (targetJuri == 0) targetJuri = lomba.getJumlahJuri();
+        int targetJuri = 4;
 
         if (finishedJudges >= targetJuri) {
             if (!rankings.isEmpty()) {
+                // Ambil nilai ajuan paling tinggi yang ada di tabel
                 long highestVote = rankings.get(0).getJumlahAjuan();
+                
+                // Cari ada berapa burung yang punya nilai SAMA dengan highestVote
                 koncerQualifiers = rankings.stream()
                         .filter(r -> r.getJumlahAjuan() == highestVote)
                         .collect(Collectors.toList());
 
-                nextStep = (koncerQualifiers.size() == 1) ? "FINISH" : "KONCER";
+                // --- LOGIC PENENTU ---
+                // Jika cuma ada SATU burung di list koncerQualifiers -> FINISH (Pemenang Mutlak)
+                if (koncerQualifiers.size() == 1) {
+                    nextStep = "FINISH";
+                    // Bersihkan list koncer karena juri gak perlu adu koncer lagi
+                    koncerQualifiers = new ArrayList<>(); 
+                } else {
+                    // Jika ada 2 atau lebih burung dengan nilai tertinggi yang sama -> KONCER (Seri)
+                    nextStep = "KONCER";
+                }
             } else {
-                nextStep = "FINISH";
+                // Case kalau semua burung DQ atau gak ada yang vote
+                nextStep = "FINISH"; 
             }
         }
 
