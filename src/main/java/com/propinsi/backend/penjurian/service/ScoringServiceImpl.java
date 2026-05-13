@@ -89,6 +89,11 @@ public class ScoringServiceImpl implements ScoringService {
 
         boolean locked = scoringVoteRepository.existsByJuriIdAndLombaIdAndBlokId(juri.getId(), lomba.getId(), blokId);
 
+        List<UUID> selectedIds = scoringVoteRepository
+            .findByJuriIdAndLombaIdAndBlokId(juri.getId(), lomba.getId(), blokId)
+            .map(v -> v.getSelectedGantangans().stream().map(Gantangan::getId).collect(Collectors.toList()))
+            .orElse(Collections.emptyList());
+
         return ScoringBlokDetailResponse.builder()
             .blokId(blokId)
             .blokLabel(toRomanLabel(blokId))
@@ -96,6 +101,7 @@ public class ScoringServiceImpl implements ScoringService {
             .namaLomba(lomba.getNamaLomba())
             .locked(locked)
             .gantangan(blockGantangan.stream().map(this::toGantanganResponse).toList())
+            .selectedGantanganIds(selectedIds)
             .build();
     }
 
@@ -313,6 +319,7 @@ public class ScoringServiceImpl implements ScoringService {
 
                 if (voteCount > 0) {
                     rankings.add(GantanganRankingResponse.builder()
+                            .gantanganId(g.getId())
                             .nomorGantangan(g.getNomorGantangan())
                             .blokId(getBlokIdByNomor(g.getNomorGantangan()))
                             .jumlahAjuan(voteCount).build());
@@ -575,7 +582,12 @@ public class ScoringServiceImpl implements ScoringService {
             Integer p2 = r2.getTotalPoin() == null ? -1 : r2.getTotalPoin();
             int pCompare = p2.compareTo(p1);
             if (pCompare != 0) return pCompare;
-            
+
+            Long a1 = r1.getTotalAjuan() == null ? -1L : r1.getTotalAjuan();
+            Long a2 = r2.getTotalAjuan() == null ? -1L : r2.getTotalAjuan();
+            int aCompare = a2.compareTo(a1);
+            if (aCompare != 0) return aCompare;
+
             return r1.getNomorGantangan().compareTo(r2.getNomorGantangan());
         });
         
