@@ -297,7 +297,7 @@ public class ScoringServiceImpl implements ScoringService {
                 .collect(Collectors.groupingBy(v -> v.getJuri().getId(), Collectors.counting()));
         long finishedJudges = judgeProgress.values().stream().filter(count -> count == 4).count();
 
-        // 2. Olah Klasemen (Cegah Dobel & Filter ACTIVE)
+        // 2. Olah Klasemen
         List<Gantangan> allGantangans = gantanganRepository.findByLombaIdOrderByNomorGantanganAsc(lombaId)
                 .stream().distinct().collect(Collectors.toList());
 
@@ -324,7 +324,6 @@ public class ScoringServiceImpl implements ScoringService {
         // Urutkan (Tertinggi di atas)
         rankings.sort(Comparator.comparing(GantanganRankingResponse::getJumlahAjuan).reversed());
 
-        // 3. Logic Penentu Nasib (DI SINI KUNCINYA)
         String nextStep = "WAITING";
         List<GantanganRankingResponse> koncerQualifiers = new ArrayList<>();
         int targetJuri = 4;
@@ -339,7 +338,6 @@ public class ScoringServiceImpl implements ScoringService {
                         .filter(r -> r.getJumlahAjuan() == highestVote)
                         .collect(Collectors.toList());
 
-                // --- LOGIC PENENTU ---
                 // Jika cuma ada SATU burung di list koncerQualifiers -> FINISH (Pemenang Mutlak)
                 if (koncerQualifiers.size() == 1) {
                     nextStep = "FINISH";
