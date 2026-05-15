@@ -13,6 +13,6 @@ import java.util.Map;
 public class KoncerStatusResponse {
     private boolean hasSubmitted; 
     private long totalJuriSubmitted;
-    private boolean isKoncerFinished; 
+    private boolean koncerFinished;
     private Map<String, String> userVotes;
 }

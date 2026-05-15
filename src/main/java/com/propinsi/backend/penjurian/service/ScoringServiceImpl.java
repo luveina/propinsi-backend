@@ -333,7 +333,7 @@ public class ScoringServiceImpl implements ScoringService {
 
         String nextStep = "WAITING";
         List<GantanganRankingResponse> koncerQualifiers = new ArrayList<>();
-        int targetJuri = 4;
+        int targetJuri = lomba.getJumlahJuri();
 
         if (finishedJudges >= targetJuri) {
             if (!rankings.isEmpty()) {
@@ -423,7 +423,7 @@ public class ScoringServiceImpl implements ScoringService {
         return KoncerStatusResponse.builder()
             .hasSubmitted(hasSubmitted)
             .totalJuriSubmitted(totalSubmitted)
-            .isKoncerFinished(isFinished)
+            .koncerFinished(isFinished)
             .userVotes(userVotes)
             .build();
     }
