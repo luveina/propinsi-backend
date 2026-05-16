@@ -31,8 +31,9 @@ public class DashboardServiceImpl implements DashboardService {
         List<Reservasi> paid = reservasiRepository
                 .findByStatusAndWaktuReservasiBetween(StatusReservasi.PAID, start, end)
                 .stream()
-                .filter(r -> jenisBurung == null || jenisBurung.isEmpty() || jenisBurung.stream().anyMatch(jb -> r.getLomba().getJenisBurung().name().equalsIgnoreCase(jb)))
-                .filter(r -> kelas == null || kelas.isEmpty() || kelas.stream().anyMatch(k -> r.getLomba().getKelas().equalsIgnoreCase(k)))
+                .filter(r -> r.getLomba() != null)
+                .filter(r -> jenisBurung == null || jenisBurung.isEmpty() || (r.getLomba().getJenisBurung() != null && jenisBurung.stream().anyMatch(jb -> r.getLomba().getJenisBurung().name().equalsIgnoreCase(jb))))
+                .filter(r -> kelas == null || kelas.isEmpty() || (r.getLomba().getKelas() != null && kelas.stream().anyMatch(k -> r.getLomba().getKelas().equalsIgnoreCase(k))))
                 .collect(Collectors.toList());
 
         long total = paid.size();
@@ -44,8 +45,9 @@ public class DashboardServiceImpl implements DashboardService {
         List<Reservasi> allReservasi = reservasiRepository
                 .findByWaktuReservasiBetween(start, end)
                 .stream()
-                .filter(r -> jenisBurung == null || jenisBurung.isEmpty() || jenisBurung.stream().anyMatch(jb -> r.getLomba().getJenisBurung().name().equalsIgnoreCase(jb)))
-                .filter(r -> kelas == null || kelas.isEmpty() || kelas.stream().anyMatch(k -> r.getLomba().getKelas().equalsIgnoreCase(k)))
+                .filter(r -> r.getLomba() != null)
+                .filter(r -> jenisBurung == null || jenisBurung.isEmpty() || (r.getLomba().getJenisBurung() != null && jenisBurung.stream().anyMatch(jb -> r.getLomba().getJenisBurung().name().equalsIgnoreCase(jb))))
+                .filter(r -> kelas == null || kelas.isEmpty() || (r.getLomba().getKelas() != null && kelas.stream().anyMatch(k -> r.getLomba().getKelas().equalsIgnoreCase(k))))
                 .collect(Collectors.toList());
 
         long allCount = allReservasi.size();
@@ -59,6 +61,7 @@ public class DashboardServiceImpl implements DashboardService {
         double occupancyRate = totalKapasitas == 0 ? 0.0 : Math.round((double) total / totalKapasitas * 1000.0) / 10.0;
 
         Map<String, List<Reservasi>> byKelas = paid.stream()
+                .filter(r -> r.getLomba() != null && r.getLomba().getKelas() != null)
                 .collect(Collectors.groupingBy(r -> r.getLomba().getKelas()));
 
         List<ClassSalesResponse> allClasses = byKelas.entrySet().stream()
@@ -82,6 +85,7 @@ public class DashboardServiceImpl implements DashboardService {
         List<ClassSalesResponse> top5Classes = allClasses.stream().limit(5).collect(Collectors.toList());
 
         Map<JenisBurung, List<Reservasi>> byBird = paid.stream()
+                .filter(r -> r.getLomba() != null && r.getLomba().getJenisBurung() != null)
                 .collect(Collectors.groupingBy(r -> r.getLomba().getJenisBurung()));
 
         List<BirdTypeSalesResponse> allBirdTypes = byBird.entrySet().stream()
