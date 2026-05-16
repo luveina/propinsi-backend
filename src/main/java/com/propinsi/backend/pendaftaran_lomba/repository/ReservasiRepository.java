@@ -1,6 +1,7 @@
 package com.propinsi.backend.pendaftaran_lomba.repository;
 
 import com.propinsi.backend.model.User;
+import com.propinsi.backend.mengelola_lomba.model.Gantangan;
 import com.propinsi.backend.pendaftaran_lomba.model.Reservasi;
 import com.propinsi.backend.pendaftaran_lomba.model.StatusReservasi;
 
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -26,4 +28,6 @@ public interface ReservasiRepository extends JpaRepository<Reservasi, UUID> {
 
     List<Reservasi> findByStatusAndWaktuReservasiBetween(StatusReservasi status, LocalDateTime start, LocalDateTime end);
     List<Reservasi> findByWaktuReservasiBetween(LocalDateTime start, LocalDateTime end);
+    
+    Optional<Reservasi> findByGantangan(Gantangan gantangan);
 }

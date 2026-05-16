@@ -36,6 +36,8 @@ public class Gantangan {
     @Min(0) @Max(3)
     private Integer warningCount = 0;
 
+    private Boolean isPresent = false;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "peserta_id")
     private User peserta;
