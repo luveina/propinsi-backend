@@ -11,12 +11,16 @@ import com.propinsi.backend.pendaftaran_lomba.model.Reservasi;
 import com.propinsi.backend.pendaftaran_lomba.model.StatusReservasi;
 import com.propinsi.backend.pendaftaran_lomba.repository.ReservasiRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -27,15 +31,19 @@ public class DashboardServiceImpl implements DashboardService {
 
     @Override
     public AnalyticsResponse getAnalytics(LocalDate startDate, LocalDate endDate, List<String> jenisBurung, List<String> kelas) {
+        validateDateRange(startDate, endDate);
+
         LocalDateTime start = startDate.atStartOfDay();
-        LocalDateTime end = endDate.atTime(23, 59, 59);
+        LocalDateTime end = endDate.plusDays(1).atStartOfDay();
+        List<JenisBurung> selectedJenisBurung = parseJenisBurungFilter(jenisBurung);
+        List<String> selectedKelas = normalizeTextFilter(kelas);
 
         List<Reservasi> paid = reservasiRepository
-                .findByStatusAndWaktuReservasiBetween(StatusReservasi.PAID, start, end)
+                .findByStatusAndWaktuReservasiGreaterThanEqualAndWaktuReservasiLessThan(StatusReservasi.PAID, start, end)
                 .stream()
                 .filter(r -> r.getLomba() != null)
-                .filter(r -> jenisBurung == null || jenisBurung.isEmpty() || (r.getLomba().getJenisBurung() != null && jenisBurung.stream().anyMatch(jb -> r.getLomba().getJenisBurung().name().equalsIgnoreCase(jb))))
-                .filter(r -> kelas == null || kelas.isEmpty() || (r.getLomba().getKelas() != null && kelas.stream().anyMatch(k -> r.getLomba().getKelas().equalsIgnoreCase(k))))
+                .filter(r -> matchesJenisBurung(r, selectedJenisBurung))
+                .filter(r -> matchesKelas(r, selectedKelas))
                 .collect(Collectors.toList());
 
         long total = paid.size();
@@ -45,11 +53,11 @@ public class DashboardServiceImpl implements DashboardService {
                 .sum();
 
         List<Reservasi> allReservasi = reservasiRepository
-                .findByWaktuReservasiBetween(start, end)
+                .findByWaktuReservasiGreaterThanEqualAndWaktuReservasiLessThan(start, end)
                 .stream()
                 .filter(r -> r.getLomba() != null)
-                .filter(r -> jenisBurung == null || jenisBurung.isEmpty() || (r.getLomba().getJenisBurung() != null && jenisBurung.stream().anyMatch(jb -> r.getLomba().getJenisBurung().name().equalsIgnoreCase(jb))))
-                .filter(r -> kelas == null || kelas.isEmpty() || (r.getLomba().getKelas() != null && kelas.stream().anyMatch(k -> r.getLomba().getKelas().equalsIgnoreCase(k))))
+                .filter(r -> matchesJenisBurung(r, selectedJenisBurung))
+                .filter(r -> matchesKelas(r, selectedKelas))
                 .collect(Collectors.toList());
 
         long allCount = allReservasi.size();
@@ -138,6 +146,62 @@ public class DashboardServiceImpl implements DashboardService {
                 .allClasses(allClasses)
                 .allBirdTypes(allBirdTypes)
                 .build();
+    }
+
+    private void validateDateRange(LocalDate startDate, LocalDate endDate) {
+        if (startDate == null || endDate == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "start_date dan end_date wajib diisi");
+        }
+
+        if (startDate.isAfter(endDate)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "start_date tidak boleh lebih dari end_date");
+        }
+    }
+
+    private List<JenisBurung> parseJenisBurungFilter(List<String> jenisBurung) {
+        List<String> normalized = normalizeTextFilter(jenisBurung);
+        if (normalized.isEmpty()) {
+            return List.of();
+        }
+
+        Set<String> validValues = Arrays.stream(JenisBurung.values())
+                .map(Enum::name)
+                .collect(Collectors.toSet());
+
+        return normalized.stream()
+                .map(value -> value.toUpperCase().replace(" ", "_"))
+                .map(value -> {
+                    if (!validValues.contains(value)) {
+                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "jenis_burung tidak valid: " + value);
+                    }
+                    return JenisBurung.valueOf(value);
+                })
+                .distinct()
+                .collect(Collectors.toList());
+    }
+
+    private List<String> normalizeTextFilter(List<String> values) {
+        if (values == null) {
+            return List.of();
+        }
+
+        return values.stream()
+                .filter(value -> value != null && !value.trim().isEmpty())
+                .map(String::trim)
+                .distinct()
+                .collect(Collectors.toList());
+    }
+
+    private boolean matchesJenisBurung(Reservasi reservasi, List<JenisBurung> selectedJenisBurung) {
+        return selectedJenisBurung.isEmpty()
+                || (reservasi.getLomba().getJenisBurung() != null
+                && selectedJenisBurung.contains(reservasi.getLomba().getJenisBurung()));
+    }
+
+    private boolean matchesKelas(Reservasi reservasi, List<String> selectedKelas) {
+        return selectedKelas.isEmpty()
+                || (reservasi.getLomba().getKelas() != null
+                && selectedKelas.stream().anyMatch(k -> reservasi.getLomba().getKelas().equalsIgnoreCase(k)));
     }
 
     private List<TrendDataResponse> toDailyBreakdown(List<Reservasi> reservasiList) {
