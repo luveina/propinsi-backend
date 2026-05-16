@@ -20,4 +20,7 @@ public class ScoringBlokDetailResponse {
 
     @Builder.Default
     private List<ScoringGantanganResponse> gantangan = new ArrayList<>();
+
+    @Builder.Default
+    private List<UUID> selectedGantanganIds = new ArrayList<>();
 }

@@ -3,7 +3,6 @@ package com.propinsi.backend.mengelola_lomba.service;
 import com.propinsi.backend.mengelola_lomba.model.StatusLomba;
 import com.propinsi.backend.mengelola_lomba.restdto.request.AssignJuriRequest;
 import com.propinsi.backend.mengelola_lomba.restdto.request.LombaRequest;
-import com.propinsi.backend.mengelola_lomba.restdto.response.FinalResultResponse;
 import com.propinsi.backend.mengelola_lomba.restdto.response.LombaDetailResponse;
 import com.propinsi.backend.mengelola_lomba.restdto.response.LombaResponse;
 import com.propinsi.backend.mengelola_lomba.restdto.response.UserSummaryResponse;
@@ -25,6 +24,5 @@ public interface LombaService {
     List<UserSummaryResponse> getAvailableJuri();
     void deleteLomba(UUID id);
     LombaDetailResponse getLombaDetail(UUID id, User currentUser);
-    FinalResultResponse getLombaResult(UUID id);
     void updateStatus(UUID id, StatusLomba newStatus);
 }

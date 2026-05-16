@@ -3,9 +3,7 @@ package com.propinsi.backend.mengelola_lomba.service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -26,8 +24,6 @@ import com.propinsi.backend.mengelola_lomba.repository.LombaRepository;
 import com.propinsi.backend.mengelola_lomba.repository.LombaSpecification;
 import com.propinsi.backend.mengelola_lomba.restdto.request.AssignJuriRequest;
 import com.propinsi.backend.mengelola_lomba.restdto.request.LombaRequest;
-import com.propinsi.backend.mengelola_lomba.restdto.response.FinalResultGantanganResponse;
-import com.propinsi.backend.mengelola_lomba.restdto.response.FinalResultResponse;
 import com.propinsi.backend.mengelola_lomba.restdto.response.GantanganResponse;
 import com.propinsi.backend.mengelola_lomba.restdto.response.LombaDetailResponse;
 import com.propinsi.backend.mengelola_lomba.restdto.response.LombaResponse;
@@ -37,8 +33,6 @@ import com.propinsi.backend.model.User;
 import com.propinsi.backend.repository.UserRepository;
 import com.propinsi.backend.pendaftaran_lomba.repository.ReservasiRepository;
 import com.propinsi.backend.pendaftaran_lomba.model.StatusReservasi;
-import com.propinsi.backend.penjurian.model.ScoringVote;
-import com.propinsi.backend.penjurian.repository.ScoringVoteRepository;
 import java.util.Arrays;
 
 @Service
@@ -61,9 +55,6 @@ public class LombaServiceImpl implements LombaService {
 
     @Autowired
     private ReservasiRepository reservasiRepository;
-
-    @Autowired
-    private ScoringVoteRepository scoringVoteRepository;
 
     @Override
     public LombaResponse createLomba(LombaRequest request) {
@@ -562,58 +553,6 @@ public class LombaServiceImpl implements LombaService {
         }
 
         return builder.build();
-    }
-
-    @Override
-    public FinalResultResponse getLombaResult(UUID id) {
-        Lomba lomba = lombaRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lomba tidak ditemukan"));
-
-        Map<UUID, Integer> totalAjuanByGantanganId = new HashMap<>();
-        List<ScoringVote> votes = scoringVoteRepository.findByLombaId(id);
-        for (ScoringVote vote : votes) {
-            if (vote.getSelectedGantangans() == null) {
-                continue;
-            }
-
-            for (Gantangan gantangan : vote.getSelectedGantangans()) {
-                if (gantangan.getStatus() == GantanganStatus.DISQUALIFIED) {
-                    continue;
-                }
-                totalAjuanByGantanganId.merge(gantangan.getId(), 1, Integer::sum);
-            }
-        }
-
-        List<FinalResultGantanganResponse> results = gantanganRepository.findByLombaIdOrderByNomorGantanganAsc(lomba.getId())
-                .stream()
-                .filter(g -> g.getStatus() != GantanganStatus.DISQUALIFIED)
-                .map(g -> {
-                    int totalAjuan = totalAjuanByGantanganId.getOrDefault(g.getId(), 0);
-                    return FinalResultGantanganResponse.builder()
-                            .nomorGantangan(g.getNomorGantangan())
-                            .totalAjuan(totalAjuan)
-                            .hasilKoncer(null)
-                            .totalPoin(totalAjuan)
-                            .build();
-                })
-                .sorted((a, b) -> {
-                    int poinCompare = Integer.compare(b.getTotalPoin(), a.getTotalPoin());
-                    if (poinCompare != 0) {
-                        return poinCompare;
-                    }
-
-                    int ajuanCompare = Integer.compare(b.getTotalAjuan(), a.getTotalAjuan());
-                    if (ajuanCompare != 0) {
-                        return ajuanCompare;
-                    }
-
-                    return Integer.compare(a.getNomorGantangan(), b.getNomorGantangan());
-                })
-                .collect(Collectors.toList());
-
-        return FinalResultResponse.builder()
-                .results(results)
-                .build();
     }
 
     @Transactional
