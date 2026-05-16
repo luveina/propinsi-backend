@@ -14,5 +14,6 @@ public interface ScoringVoteRepository extends JpaRepository<ScoringVote, UUID> 
     Optional<ScoringVote> findByJuriIdAndLombaIdAndBlokId(Long juriId, UUID lombaId, Integer blokId);
     boolean existsByJuriIdAndLombaIdAndBlokId(Long juriId, UUID lombaId, Integer blokId);
     List<ScoringVote> findByJuriIdAndLombaId(Long juriId, UUID lombaId);
+    List<ScoringVote> findByLombaId(UUID lombaId);
     List<ScoringVote> findBySelectedGantangansContains(Gantangan gantangan);
 }

@@ -5,6 +5,8 @@ import com.propinsi.backend.dashboard.restdto.response.BirdTypeSalesResponse;
 import com.propinsi.backend.dashboard.restdto.response.ClassSalesResponse;
 import com.propinsi.backend.dashboard.restdto.response.TrendDataResponse;
 import com.propinsi.backend.mengelola_lomba.model.JenisBurung;
+import com.propinsi.backend.mengelola_lomba.model.StatusLomba;
+import com.propinsi.backend.mengelola_lomba.model.Lomba;
 import com.propinsi.backend.pendaftaran_lomba.model.Reservasi;
 import com.propinsi.backend.pendaftaran_lomba.model.StatusReservasi;
 import com.propinsi.backend.pendaftaran_lomba.repository.ReservasiRepository;
@@ -53,12 +55,22 @@ public class DashboardServiceImpl implements DashboardService {
         long allCount = allReservasi.size();
         double bookingSuccessRate = allCount == 0 ? 0.0 : Math.round((double) total / allCount * 1000.0) / 10.0;
 
-        long totalKapasitas = paid.stream()
+        List<Lomba> finishedLombas = paid.stream()
                 .map(Reservasi::getLomba)
                 .distinct()
+                .filter(l -> StatusLomba.SELESAI.equals(l.getStatus()))
+                .collect(Collectors.toList());
+
+        long totalFinishedCapacity = finishedLombas.stream()
                 .mapToInt(l -> l.getListGantangan() != null ? l.getListGantangan().size() : 0)
                 .sum();
-        double occupancyRate = totalKapasitas == 0 ? 0.0 : Math.round((double) total / totalKapasitas * 1000.0) / 10.0;
+
+        long totalPresent = finishedLombas.stream()
+                .flatMap(l -> l.getListGantangan() != null ? l.getListGantangan().stream() : java.util.stream.Stream.empty())
+                .filter(g -> Boolean.TRUE.equals(g.getIsPresent()))
+                .count();
+
+        double occupancyRate = totalFinishedCapacity == 0 ? 0.0 : Math.round((double) totalPresent / totalFinishedCapacity * 1000.0) / 10.0;
 
         Map<String, List<Reservasi>> byKelas = paid.stream()
                 .filter(r -> r.getLomba() != null && r.getLomba().getKelas() != null)

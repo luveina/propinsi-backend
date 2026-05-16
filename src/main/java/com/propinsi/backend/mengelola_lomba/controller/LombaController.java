@@ -3,6 +3,7 @@ package com.propinsi.backend.mengelola_lomba.controller;
 import com.propinsi.backend.mengelola_lomba.model.StatusLomba;
 import com.propinsi.backend.mengelola_lomba.restdto.request.AssignJuriRequest;
 import com.propinsi.backend.mengelola_lomba.restdto.request.LombaRequest;
+import com.propinsi.backend.mengelola_lomba.restdto.response.FinalResultResponse;
 import com.propinsi.backend.mengelola_lomba.restdto.response.LombaDetailResponse;
 import com.propinsi.backend.mengelola_lomba.restdto.response.LombaResponse;
 import com.propinsi.backend.mengelola_lomba.restdto.response.UserSummaryResponse;
@@ -152,6 +153,11 @@ public class LombaController {
             @PathVariable UUID id,
             @AuthenticationPrincipal User currentUser) {
         return ResponseEntity.ok(lombaService.getLombaDetail(id, currentUser));
+    }
+
+    @GetMapping("/result/{id}")
+    public ResponseEntity<BaseResponse<FinalResultResponse>> getLombaResult(@PathVariable UUID id) {
+        return ResponseEntity.ok(BaseResponse.success(lombaService.getLombaResult(id), "Hasil akhir lomba berhasil diambil"));
     }
 
     @PatchMapping("/{id}/status")
