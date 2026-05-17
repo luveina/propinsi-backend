@@ -10,8 +10,8 @@ import java.util.List;
 public class AnalyticsResponse {
     private long totalTiketTerjual;
     private long totalRevenue;
-    private double bookingSuccessRate;
     private double occupancyRate;
+    private double attendanceRate;
     
     private List<ClassSalesResponse> top5Classes;
     private List<BirdTypeSalesResponse> top5BirdTypes;

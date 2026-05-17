@@ -5,7 +5,6 @@ import com.propinsi.backend.dashboard.restdto.response.BirdTypeSalesResponse;
 import com.propinsi.backend.dashboard.restdto.response.ClassSalesResponse;
 import com.propinsi.backend.dashboard.restdto.response.TrendDataResponse;
 import com.propinsi.backend.mengelola_lomba.model.JenisBurung;
-import com.propinsi.backend.mengelola_lomba.model.StatusLomba;
 import com.propinsi.backend.mengelola_lomba.model.Lomba;
 import com.propinsi.backend.pendaftaran_lomba.model.Reservasi;
 import com.propinsi.backend.pendaftaran_lomba.model.StatusReservasi;
@@ -52,33 +51,23 @@ public class DashboardServiceImpl implements DashboardService {
                 .mapToLong(r -> r.getNominal() != null ? r.getNominal().longValue() : 0L)
                 .sum();
 
-        List<Reservasi> allReservasi = reservasiRepository
-                .findByWaktuReservasiGreaterThanEqualAndWaktuReservasiLessThan(start, end)
-                .stream()
-                .filter(r -> r.getLomba() != null)
-                .filter(r -> matchesJenisBurung(r, selectedJenisBurung))
-                .filter(r -> matchesKelas(r, selectedKelas))
-                .collect(Collectors.toList());
-
-        long allCount = allReservasi.size();
-        double bookingSuccessRate = allCount == 0 ? 0.0 : Math.round((double) total / allCount * 1000.0) / 10.0;
-
-        List<Lomba> finishedLombas = paid.stream()
+        List<Lomba> lombasWithSoldTickets = paid.stream()
                 .map(Reservasi::getLomba)
                 .distinct()
-                .filter(l -> StatusLomba.SELESAI.equals(l.getStatus()))
                 .collect(Collectors.toList());
 
-        long totalFinishedCapacity = finishedLombas.stream()
+        long totalCapacity = lombasWithSoldTickets.stream()
                 .mapToInt(l -> l.getListGantangan() != null ? l.getListGantangan().size() : 0)
                 .sum();
 
-        long totalPresent = finishedLombas.stream()
-                .flatMap(l -> l.getListGantangan() != null ? l.getListGantangan().stream() : java.util.stream.Stream.empty())
-                .filter(g -> Boolean.TRUE.equals(g.getIsPresent()))
+        double occupancyRate = totalCapacity == 0 ? 0.0 : Math.round((double) total / totalCapacity * 1000.0) / 10.0;
+
+        long totalPresent = paid.stream()
+                .map(Reservasi::getGantangan)
+                .filter(gantangan -> gantangan != null && Boolean.TRUE.equals(gantangan.getIsPresent()))
                 .count();
 
-        double occupancyRate = totalFinishedCapacity == 0 ? 0.0 : Math.round((double) totalPresent / totalFinishedCapacity * 1000.0) / 10.0;
+        double attendanceRate = total == 0 ? 0.0 : Math.round((double) totalPresent / total * 1000.0) / 10.0;
 
         Map<String, List<Reservasi>> byKelas = paid.stream()
                 .filter(r -> r.getLomba() != null && r.getLomba().getKelas() != null)
@@ -138,8 +127,8 @@ public class DashboardServiceImpl implements DashboardService {
         return AnalyticsResponse.builder()
                 .totalTiketTerjual(total)
                 .totalRevenue(totalRevenue)
-                .bookingSuccessRate(bookingSuccessRate)
                 .occupancyRate(occupancyRate)
+                .attendanceRate(attendanceRate)
                 .top5Classes(top5Classes)
                 .top5BirdTypes(top5BirdTypes)
                 .trendData(trendData)
